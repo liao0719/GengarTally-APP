@@ -35,7 +35,7 @@ jobs:
           cat <<EOF > capacitor.config.json
           {
             "appId": "com.gengar.tally",
-            "appName": "極簡記帳",
+            "appName": "GengarTally",
             "webDir": "www"
           }
           EOF
@@ -43,10 +43,14 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: 替換 App 桌面耿鬼圖示
+      - name: 替換 App 桌面耿鬼圖示與背景色
         run: |
+          # 1. 替換所有自適應前景圖與傳統圖示
           find android/app/src/main/res/ -name "ic_launcher*.png" -exec cp gengar.png {} \; 2>/dev/null || true
           find android/app/src/main/res/ -name "ic_launcher*.webp" -exec cp gengar.png {} \; 2>/dev/null || true
+          
+          # 2. 將預設的白色背景 (#FFFFFF) 修改為 App 極簡暗黑底色 (#09090b)
+          sed -i 's/#FFFFFF/#09090b/g' android/app/src/main/res/values/ic_launcher_background.xml 2>/dev/null || true
 
       - name: 編譯生成 Android Debug APK
         run: |
