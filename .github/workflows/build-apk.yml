@@ -16,22 +16,30 @@ jobs:
       - name: 設定 Node.js 環境
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
-      - name: 設定 Java 17
+      - name: 設定 Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
-      - name: 初始化 Capacitor 本地容器並注入本地檔案
+      - name: 初始化本地容器與配置
         run: |
           mkdir -p www
           cp index.html www/
           cp gengar.png www/
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap init "極簡記帳" "com.gengar.tally" --web-dir "www"
+          
+          cat <<EOF > capacitor.config.json
+          {
+            "appId": "com.gengar.tally",
+            "appName": "極簡記帳",
+            "webDir": "www"
+          }
+          EOF
+          
           npx cap add android
           npx cap sync android
 
