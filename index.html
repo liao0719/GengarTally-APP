@@ -89,7 +89,7 @@
     .item-amount { font-size: 1.05rem; font-weight: 700; color: #f87171; pointer-events: none; }
     .item-del { background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 1.1rem; padding: 0 6px; }
 
-    /* 設定彈窗與調色盤小工具 */
+    /* 設定彈窗樣式 */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; justify-content: center; align-items: center; padding: 16px; z-index: 99; }
     .modal { background: #18181b; border: 1px solid #3f3f46; border-radius: 14px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
     .modal-title { font-size: 1.05rem; font-weight: 700; color: #fff; }
@@ -108,7 +108,7 @@
     }
     .modal-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
 
-    /* 回收桶專屬樣式 */
+    /* 回收桶樣式 */
     .trash-section { border-top: 1px solid #27272a; padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
     .trash-header { display: flex; justify-content: space-between; align-items: center; }
     .trash-title { font-size: 0.88rem; font-weight: 600; color: #f87171; display: flex; align-items: center; gap: 4px; }
@@ -171,7 +171,7 @@
 </div>
 
 <div id="config-modal" class="modal-backdrop">
-  <div class="modal">
+  <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-title">快速設定帳戶</div>
     <div class="modal-desc">可直接點選色塊挑選顏色，或在下方文本手動修改色碼：</div>
     
@@ -204,7 +204,6 @@
       </div>
     </div>
 
-    <!-- 底部新增：回收桶區塊 -->
     <div class="trash-section">
       <div class="trash-header">
         <span class="trash-title">🗑️ 回收桶</span>
@@ -263,7 +262,6 @@
     records = [];
   }
 
-  // 讀取回收桶資料
   let trashRecords = [];
   try {
     const savedTrash = JSON.parse(localStorage.getItem('expense_trash'));
@@ -282,6 +280,20 @@
     setToday();
     renderSubMethods();
     renderHistory();
+
+    // 點選遮罩空白處直接關閉設定
+    const modalBackdrop = document.getElementById('config-modal');
+    modalBackdrop.addEventListener('click', () => {
+      closeConfigModal();
+    });
+
+    // 攔截 Android 實體返回鍵 / 側滑手勢
+    window.addEventListener('popstate', (e) => {
+      const modal = document.getElementById('config-modal');
+      if (modal && modal.style.display === 'flex') {
+        modal.style.display = 'none';
+      }
+    });
   }
 
   function setToday() {
@@ -563,12 +575,10 @@
     if (totalEl) totalEl.innerText = `合計: $${total.toLocaleString()}`;
   }
 
-  // --- 回收桶機制（軟刪除） ---
   function moveToTrash(id) {
     const target = records.find(r => r.id === id);
     if (!target) return;
     
-    // 移入回收桶列表
     trashRecords.unshift({ ...target, deletedAt: new Date().toLocaleString() });
     records = records.filter(r => r.id !== id);
     
@@ -625,8 +635,6 @@
     trashRecords = trashRecords.filter(t => t.id !== id);
     const { deletedAt, ...restoredRecord } = target;
     records.unshift(restoredRecord);
-    
-    // 重新按日期排序（最新日期排在最前）
     records.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     localStorage.setItem('expense_records', JSON.stringify(records));
@@ -731,6 +739,7 @@
     return newCfg;
   }
 
+  // --- 設定彈窗開關控制（支援返回鍵攔截） ---
   function openConfigModal() {
     const c = config.colors || DEFAULT_CONFIG.colors;
     document.getElementById('picker-mobile').value = c.mobile || '#0ea5e9';
@@ -740,11 +749,21 @@
 
     document.getElementById('config-text').value = configToText(config);
     renderTrashList();
+    
+    // 推入歷史狀態，讓返回鍵可以被 popstate 捕捉
+    history.pushState({ modalOpen: true }, '');
     document.getElementById('config-modal').style.display = 'flex';
   }
 
   function closeConfigModal() {
-    document.getElementById('config-modal').style.display = 'none';
+    const modal = document.getElementById('config-modal');
+    if (modal && modal.style.display === 'flex') {
+      modal.style.display = 'none';
+      // 如果當前狀態是在彈窗中，手動觸發 back 對齊歷史紀錄
+      if (history.state && history.state.modalOpen) {
+        history.back();
+      }
+    }
   }
 
   function syncPickerToText(type, hex) {
