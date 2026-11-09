@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>極簡記帳</title>
+  <title>GengarTally</title>
   
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#18181b">
@@ -28,6 +28,9 @@
     
     .card { background: #18181b; border: 1px solid #27272a; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
     
+    .text-input { background: #09090b; border: 1px solid #3f3f46; color: #fff; padding: 11px 12px; border-radius: 8px; font-size: 0.95rem; outline: none; }
+    .text-input:focus { border-color: #818cf8; }
+
     .date-row { display: flex; gap: 8px; align-items: center; }
     .date-input { flex: 1; background: #09090b; border: 1px solid #3f3f46; color: #fff; padding: 10px; border-radius: 8px; font-size: 0.95rem; outline: none; }
     .btn-today { background: #3f3f46; border: none; color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
@@ -38,63 +41,99 @@
 
     .section-label { font-size: 0.8rem; font-weight: 600; color: #a1a1aa; margin-bottom: 4px; }
     .btn-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-    .btn-opt { background: #09090b; border: 1px solid #27272a; color: #d4d4d8; padding: 10px 4px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; text-align: center; }
+    .btn-opt { background: #09090b; border: 1px solid #27272a; color: #d4d4d8; padding: 10px 4px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; text-align: center; user-select: none; }
     .btn-opt.active { background: #6366f1; border-color: #818cf8; color: #fff; font-weight: 600; }
 
-    .sub-box { background: #09090b; border: 1px dashed #3f3f46; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-    .chip-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
-    .chip { background: #18181b; border: 1px solid #3f3f46; color: #a1a1aa; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
+    .sub-box { background: #09090b; border: 1px dashed #3f3f46; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .chip-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+    .chip { background: #18181b; border: 1px solid #3f3f46; color: #a1a1aa; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
     .chip.active { background: #4f46e5; border-color: #6366f1; color: #fff; }
 
-    .note-input { background: #09090b; border: 1px solid #3f3f46; color: #fff; padding: 10px; border-radius: 8px; font-size: 0.9rem; outline: none; }
+    .select-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .select-label { font-size: 0.75rem; color: #a1a1aa; font-weight: 500; }
+    .select-input { 
+      width: 100%; background: #18181b; border: 1px solid #3f3f46; color: #fff; 
+      padding: 11px 12px; border-radius: 8px; font-size: 0.95rem; outline: none; 
+      cursor: pointer;
+    }
+    .select-input:focus { border-color: #818cf8; }
+
     .btn-submit { background: #10b981; border: none; color: #fff; padding: 14px; border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; margin-top: 4px; }
     .btn-submit:active { opacity: 0.85; }
 
     .history-card { background: #18181b; border: 1px solid #27272a; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
     .history-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: 600; color: #a1a1aa; }
+    .history-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-clear { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; }
+    .btn-clear:hover { background: rgba(239, 68, 68, 0.2); }
     .swipe-tip { font-size: 0.72rem; color: #71717a; margin-top: -4px; }
-    .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; overflow-x: hidden; }
+    .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; overflow-x: hidden; }
     
-    /* 左滑手勢樣式 */
     .history-item { 
       display: flex; justify-content: space-between; align-items: center; 
       background: #09090b; padding: 10px 12px; border-radius: 8px; border: 1px solid #27272a;
-      position: relative; touch-action: pan-y; user-select: none;
+      position: relative; touch-action: pan-y; user-select: none; cursor: grab;
       transition: transform 0.2s ease, opacity 0.2s ease;
+      border-left: 4px solid #71717a;
     }
-    .item-left { display: flex; flex-direction: column; gap: 2px; pointer-events: none; }
-    .item-title { font-size: 0.9rem; font-weight: 600; color: #f4f4f5; }
-    .item-sub { font-size: 0.75rem; color: #71717a; }
-    .item-right { display: flex; align-items: center; gap: 10px; pointer-events: none; }
-    .item-amount { font-size: 1rem; font-weight: 700; color: #f87171; }
-    .item-del { background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 1.1rem; padding: 0 4px; pointer-events: auto; }
+    .history-item:active { cursor: grabbing; }
 
-    /* 設定彈窗 */
+    .item-left { display: flex; flex-direction: column; gap: 2px; pointer-events: none; }
+    .item-title-row { display: flex; align-items: center; gap: 6px; }
+    .item-title { font-size: 0.95rem; font-weight: 600; color: #f4f4f5; }
+    .badge { font-size: 0.68rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+
+    .item-sub { font-size: 0.75rem; color: #a1a1aa; }
+    .item-note { font-size: 0.72rem; color: #71717a; }
+    .item-right { display: flex; align-items: center; gap: 10px; }
+    .item-amount { font-size: 1.05rem; font-weight: 700; color: #f87171; pointer-events: none; }
+    .item-del { background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 1.1rem; padding: 0 6px; }
+
+    /* 設定彈窗與調色盤小工具 */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; justify-content: center; align-items: center; padding: 16px; z-index: 99; }
-    .modal { background: #18181b; border: 1px solid #3f3f46; border-radius: 14px; width: 100%; max-width: 440px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .modal { background: #18181b; border: 1px solid #3f3f46; border-radius: 14px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
     .modal-title { font-size: 1.05rem; font-weight: 700; color: #fff; }
     .modal-desc { font-size: 0.8rem; color: #a1a1aa; line-height: 1.4; }
+    
+    .color-picker-row { display: flex; justify-content: space-between; align-items: center; background: #09090b; padding: 8px 12px; border-radius: 8px; border: 1px solid #27272a; }
+    .color-picker-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #d4d4d8; }
+    .color-picker-item input[type="color"] { -webkit-appearance: none; border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; background: transparent; }
+    .color-picker-item input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    .color-picker-item input[type="color"]::-webkit-color-swatch { border: 1px solid #3f3f46; border-radius: 50%; }
+
     .modal textarea { 
-      width: 100%; height: 230px; background: #09090b; border: 1px solid #3f3f46; 
-      color: #38bdf8; font-family: monospace; font-size: 0.85rem; padding: 10px; 
-      border-radius: 8px; outline: none; resize: none; line-height: 1.5;
+      width: 100%; height: 210px; background: #09090b; border: 1px solid #3f3f46; 
+      color: #38bdf8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 0.9rem; padding: 12px; 
+      border-radius: 8px; outline: none; resize: none; line-height: 1.6;
     }
     .modal-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+
+    /* 回收桶專屬樣式 */
+    .trash-section { border-top: 1px solid #27272a; padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .trash-header { display: flex; justify-content: space-between; align-items: center; }
+    .trash-title { font-size: 0.88rem; font-weight: 600; color: #f87171; display: flex; align-items: center; gap: 4px; }
+    .trash-list { display: flex; flex-direction: column; gap: 6px; max-height: 140px; overflow-y: auto; }
+    .trash-item { display: flex; justify-content: space-between; align-items: center; background: #09090b; padding: 8px 10px; border-radius: 6px; border: 1px solid #27272a; font-size: 0.8rem; }
+    .trash-item-info { display: flex; flex-direction: column; gap: 2px; }
+    .trash-restore-btn { background: #27272a; border: 1px solid #3f3f46; color: #34d399; padding: 3px 8px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; }
+    .trash-empty-msg { font-size: 0.78rem; color: #71717a; text-align: center; padding: 8px 0; }
   </style>
 </head>
 <body>
 
 <div class="app-container">
   <header>
-    <h1>極簡記帳</h1>
-    <button class="btn-text" onclick="openConfigModal()">設定卡池與帳戶</button>
+    <h1>GengarTally</h1>
+    <button type="button" class="btn-text" onclick="openConfigModal()">設定帳戶</button>
   </header>
 
   <div class="card">
     <div class="date-row">
       <input type="date" id="tx-date" class="date-input">
-      <button class="btn-today" onclick="setToday()">今天</button>
+      <button type="button" class="btn-today" onclick="setToday()">今天</button>
     </div>
+
+    <input type="text" id="tx-item" class="text-input" placeholder="支出項目">
 
     <div class="amount-wrap">
       <span class="currency">$</span>
@@ -104,62 +143,138 @@
     <div>
       <div class="section-label">付款方式</div>
       <div class="btn-grid">
-        <button class="btn-opt active" onclick="setMainMethod('cash')">現金</button>
-        <button class="btn-opt" onclick="setMainMethod('mobile')">行動支付</button>
-        <button class="btn-opt" onclick="setMainMethod('card')">信用卡</button>
-        <button class="btn-opt" onclick="setMainMethod('bank')">銀行帳戶</button>
+        <button type="button" class="btn-opt active" onclick="setMainMethod('mobile')">行動支付</button>
+        <button type="button" class="btn-opt" onclick="setMainMethod('card')">信用卡</button>
+        <button type="button" class="btn-opt" onclick="setMainMethod('bank')">銀行帳戶</button>
+        <button type="button" class="btn-opt" onclick="setMainMethod('cash')">現金</button>
       </div>
     </div>
 
-    <div id="sub-method-panel" class="sub-box" style="display:none;"></div>
+    <div id="sub-method-panel" class="sub-box"></div>
 
-    <input type="text" id="tx-note" class="note-input" placeholder="備註（例：午餐、加值）">
+    <input type="text" id="tx-note" class="text-input" placeholder="備註">
 
-    <button class="btn-submit" onclick="submitRecord()">記錄這筆支出</button>
+    <button type="button" class="btn-submit" onclick="submitRecord()">新增支出</button>
   </div>
 
   <div class="history-card">
     <div class="history-header">
       <span>近期支出紀錄</span>
-      <span id="history-total">合計: $0</span>
+      <div class="history-actions">
+        <span id="history-total">合計: $0</span>
+        <button type="button" class="btn-clear" onclick="clearAllRecords()">清空紀錄</button>
+      </div>
     </div>
-    <div class="swipe-tip">向左滑動任一筆紀錄可直接刪除</div>
+    <div class="swipe-tip">向左滑動任一筆紀錄可移入回收桶</div>
     <div id="history-list" class="history-list"></div>
   </div>
 </div>
 
-<!-- 精簡化設定彈窗 -->
 <div id="config-modal" class="modal-backdrop">
   <div class="modal">
-    <div class="modal-title">快速設定卡池與帳戶</div>
-    <div class="modal-desc">直接在此編輯純文字清單，以逗號區隔卡片：</div>
+    <div class="modal-title">快速設定帳戶</div>
+    <div class="modal-desc">可直接點選色塊挑選顏色，或在下方文本手動修改色碼：</div>
+    
+    <div class="color-picker-row">
+      <label class="color-picker-item">
+        <input type="color" id="picker-mobile" onchange="syncPickerToText('mobile', this.value)">
+        <span>行動支付</span>
+      </label>
+      <label class="color-picker-item">
+        <input type="color" id="picker-card" onchange="syncPickerToText('card', this.value)">
+        <span>信用卡</span>
+      </label>
+      <label class="color-picker-item">
+        <input type="color" id="picker-bank" onchange="syncPickerToText('bank', this.value)">
+        <span>帳戶</span>
+      </label>
+      <label class="color-picker-item">
+        <input type="color" id="picker-cash" onchange="syncPickerToText('cash', this.value)">
+        <span>現金</span>
+      </label>
+    </div>
+
     <textarea id="config-text" placeholder="讀取中..."></textarea>
+    
     <div class="modal-btns">
-      <button class="btn-text" style="color:#ef4444;" onclick="resetDefaultConfig()">還原預設</button>
+      <button type="button" class="btn-text" style="color:#ef4444;" onclick="resetDefaultConfig()">還原預設</button>
       <div style="display:flex; gap:8px;">
-        <button class="btn-text" onclick="closeConfigModal()">取消</button>
-        <button class="btn-submit" style="padding:8px 16px; font-size:0.85rem;" onclick="saveConfigText()">儲存變更</button>
+        <button type="button" class="btn-text" onclick="closeConfigModal()">關閉</button>
+        <button type="button" class="btn-submit" style="padding:8px 16px; font-size:0.85rem;" onclick="saveConfigText()">儲存變更</button>
       </div>
+    </div>
+
+    <!-- 底部新增：回收桶區塊 -->
+    <div class="trash-section">
+      <div class="trash-header">
+        <span class="trash-title">🗑️ 回收桶</span>
+        <button type="button" class="btn-clear" onclick="emptyTrash()">永久清空</button>
+      </div>
+      <div id="trash-list" class="trash-list"></div>
     </div>
   </div>
 </div>
 
 <script>
   const DEFAULT_CONFIG = {
+    colors: {
+      mobile: "#0ea5e9",
+      card: "#8b5cf6",
+      bank: "#f59e0b",
+      cash: "#10b981"
+    },
     mobile_platforms: [
-      { name: "LINE Pay", cards: ["玉山 Unicard", "永豐 SPORT 卡", "LINE Pay 餘額"] },
+      { name: "LINE Pay", cards: ["玉山 Unicard", "LINE Pay 餘額"] },
       { name: "街口支付", cards: ["國泰世華 CUBE 卡", "街口帳戶餘額"] },
-      { name: "Apple Pay", cards: ["國泰世華 CUBE 卡", "玉山 Unicard", "永豐 SPORT 卡"] },
       { name: "全支付", cards: ["國泰世華 CUBE 卡", "全支付帳戶"] }
     ],
     direct_cards: ["國泰世華 CUBE 卡", "玉山 Unicard", "永豐 SPORT 卡"],
     bank_accounts: ["國泰世華帳戶", "玉山銀行帳戶", "永豐銀行帳戶"]
   };
 
-  let config = JSON.parse(localStorage.getItem('expense_config')) || DEFAULT_CONFIG;
-  let records = JSON.parse(localStorage.getItem('expense_records')) || [];
+  let config;
+  try {
+    const savedCfg = JSON.parse(localStorage.getItem('expense_config'));
+    if (savedCfg && Array.isArray(savedCfg.mobile_platforms) && Array.isArray(savedCfg.direct_cards) && Array.isArray(savedCfg.bank_accounts)) {
+      config = savedCfg;
+      if (!config.colors) config.colors = { ...DEFAULT_CONFIG.colors };
+    } else {
+      config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    }
+  } catch (e) {
+    config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  }
 
-  let curMethod = 'cash';
+  let records = [];
+  try {
+    const savedRec = JSON.parse(localStorage.getItem('expense_records'));
+    if (Array.isArray(savedRec)) {
+      records = savedRec.map(r => ({
+        id: r.id || Date.now(),
+        item: r.item || r.note || '日常支出',
+        date: r.date || '',
+        amount: Number(r.amount) || 0,
+        note: r.item ? (r.note || '') : '',
+        methodType: r.methodType || 'mobile',
+        methodDetail: r.methodDetail || r.method || '行動支付'
+      }));
+    }
+  } catch (e) {
+    records = [];
+  }
+
+  // 讀取回收桶資料
+  let trashRecords = [];
+  try {
+    const savedTrash = JSON.parse(localStorage.getItem('expense_trash'));
+    if (Array.isArray(savedTrash)) {
+      trashRecords = savedTrash;
+    }
+  } catch (e) {
+    trashRecords = [];
+  }
+
+  let curMethod = 'mobile';
   let curPlatform = '';
   let curCard = '';
 
@@ -174,229 +289,469 @@
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const d = String(now.getDate()).padStart(2, '0');
-    document.getElementById('tx-date').value = `${y}-${m}-${d}`;
+    const input = document.getElementById('tx-date');
+    if (input) input.value = `${y}-${m}-${d}`;
   }
 
   function setMainMethod(m) {
     curMethod = m;
     curPlatform = '';
     curCard = '';
+    const methods = ['mobile', 'card', 'bank', 'cash'];
     document.querySelectorAll('.btn-grid .btn-opt').forEach((btn, idx) => {
-      btn.classList.toggle('active', ['cash','mobile','card','bank'][idx] === m);
+      btn.classList.toggle('active', methods[idx] === m);
     });
     renderSubMethods();
   }
 
   function renderSubMethods() {
     const panel = document.getElementById('sub-method-panel');
+    if (!panel) return;
+    
     if (curMethod === 'cash') {
       panel.style.display = 'none';
+      panel.innerHTML = '';
       return;
     }
     panel.style.display = 'flex';
     panel.innerHTML = '';
 
     if (curMethod === 'mobile') {
-      if (!curPlatform && config.mobile_platforms.length) curPlatform = config.mobile_platforms[0].name;
-      const row1 = document.createElement('div');
-      row1.className = 'chip-scroll';
-      config.mobile_platforms.forEach(p => {
+      const platforms = config.mobile_platforms || [];
+      if (!platforms.length) {
+        panel.innerHTML = '<div style="color:#71717a;font-size:0.8rem;">尚未設定行動支付平台</div>';
+        return;
+      }
+      if (!curPlatform || !platforms.some(p => p.name === curPlatform)) {
+        curPlatform = platforms[0].name;
+      }
+
+      const platformRow = document.createElement('div');
+      platformRow.className = 'chip-scroll';
+      platforms.forEach(p => {
         const chip = document.createElement('button');
+        chip.type = 'button';
         chip.className = 'chip' + (p.name === curPlatform ? ' active' : '');
         chip.innerText = p.name;
         chip.onclick = () => { curPlatform = p.name; curCard = ''; renderSubMethods(); };
-        row1.appendChild(chip);
+        platformRow.appendChild(chip);
       });
-      panel.appendChild(row1);
+      panel.appendChild(platformRow);
 
-      const activePlatform = config.mobile_platforms.find(p => p.name === curPlatform);
-      if (activePlatform && activePlatform.cards.length) {
-        if (!curCard) curCard = activePlatform.cards[0];
-        const row2 = document.createElement('div');
-        row2.className = 'chip-scroll';
-        activePlatform.cards.forEach(c => {
-          const chip = document.createElement('button');
-          chip.className = 'chip' + (c === curCard ? ' active' : '');
-          chip.innerText = c;
-          chip.onclick = () => { curCard = c; renderSubMethods(); };
-          row2.appendChild(chip);
+      const activePlatform = platforms.find(p => p.name === curPlatform);
+      const cards = (activePlatform && activePlatform.cards) ? activePlatform.cards : [];
+      if (cards.length) {
+        if (!curCard || !cards.includes(curCard)) curCard = cards[0];
+        const selectWrap = document.createElement('div');
+        selectWrap.className = 'select-wrap';
+        selectWrap.innerHTML = `<span class="select-label">選擇扣款卡片 / 帳戶：</span>`;
+
+        const select = document.createElement('select');
+        select.className = 'select-input';
+        cards.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c;
+          opt.innerText = c;
+          if (c === curCard) opt.selected = true;
+          select.appendChild(opt);
         });
-        panel.appendChild(row2);
+        select.onchange = (e) => { curCard = e.target.value; };
+        selectWrap.appendChild(select);
+        panel.appendChild(selectWrap);
       }
     } else if (curMethod === 'card') {
-      if (!curCard && config.direct_cards.length) curCard = config.direct_cards[0];
-      const row = document.createElement('div');
-      row.className = 'chip-scroll';
-      config.direct_cards.forEach(c => {
-        const chip = document.createElement('button');
-        chip.className = 'chip' + (c === curCard ? ' active' : '');
-        chip.innerText = c;
-        chip.onclick = () => { curCard = c; renderSubMethods(); };
-        row.appendChild(chip);
+      const cards = config.direct_cards || [];
+      if (!cards.length) {
+        panel.innerHTML = '<div style="color:#71717a;font-size:0.8rem;">尚未設定信用卡</div>';
+        return;
+      }
+      if (!curCard || !cards.includes(curCard)) curCard = cards[0];
+      const selectWrap = document.createElement('div');
+      selectWrap.className = 'select-wrap';
+      selectWrap.innerHTML = `<span class="select-label">選擇信用卡：</span>`;
+
+      const select = document.createElement('select');
+      select.className = 'select-input';
+      cards.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.innerText = c;
+        if (c === curCard) opt.selected = true;
+        select.appendChild(opt);
       });
-      panel.appendChild(row);
+      select.onchange = (e) => { curCard = e.target.value; };
+      selectWrap.appendChild(select);
+      panel.appendChild(selectWrap);
     } else if (curMethod === 'bank') {
-      if (!curCard && config.bank_accounts.length) curCard = config.bank_accounts[0];
-      const row = document.createElement('div');
-      row.className = 'chip-scroll';
-      config.bank_accounts.forEach(b => {
-        const chip = document.createElement('button');
-        chip.className = 'chip' + (b === curCard ? ' active' : '');
-        chip.innerText = b;
-        chip.onclick = () => { curCard = b; renderSubMethods(); };
-        row.appendChild(chip);
+      const accounts = config.bank_accounts || [];
+      if (!accounts.length) {
+        panel.innerHTML = '<div style="color:#71717a;font-size:0.8rem;">尚未設定帳戶</div>';
+        return;
+      }
+      if (!curCard || !accounts.includes(curCard)) curCard = accounts[0];
+      const selectWrap = document.createElement('div');
+      selectWrap.className = 'select-wrap';
+      selectWrap.innerHTML = `<span class="select-label">選擇扣款帳戶：</span>`;
+
+      const select = document.createElement('select');
+      select.className = 'select-input';
+      accounts.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b;
+        opt.innerText = b;
+        if (b === curCard) opt.selected = true;
+        select.appendChild(opt);
       });
-      panel.appendChild(row);
+      select.onchange = (e) => { curCard = e.target.value; };
+      selectWrap.appendChild(select);
+      panel.appendChild(selectWrap);
     }
   }
 
   function submitRecord() {
-    const amountVal = parseFloat(document.getElementById('tx-amount').value);
-    if (!amountVal || amountVal <= 0) {
-      alert('請輸入有效金額');
+    const itemInput = document.getElementById('tx-item');
+    const itemVal = itemInput.value.trim();
+
+    if (!itemVal) {
+      alert('請填寫支出項目！');
+      itemInput.focus();
       return;
     }
-    const dateVal = document.getElementById('tx-date').value;
-    const noteVal = document.getElementById('tx-note').value.trim() || '日常支出';
+
+    const amountInput = document.getElementById('tx-amount');
+    const amountVal = parseFloat(amountInput.value);
+    if (!amountVal || isNaN(amountVal) || amountVal <= 0) {
+      alert('請輸入有效金額');
+      amountInput.focus();
+      return;
+    }
+
+    const dateInput = document.getElementById('tx-date');
+    const dateVal = dateInput.value || '2026-11-09';
+    const noteInput = document.getElementById('tx-note');
+    const noteVal = noteInput.value.trim();
 
     let payDetail = '現金';
     if (curMethod === 'mobile') {
-      payDetail = `${curPlatform}${curCard ? ' (' + curCard + ')' : ''}`;
+      payDetail = `${curPlatform}${curCard ? ' · ' + curCard : ''}`;
     } else if (curMethod === 'card') {
-      payDetail = `信用卡 (${curCard})`;
+      payDetail = curCard;
     } else if (curMethod === 'bank') {
-      payDetail = `帳戶 (${curCard})`;
+      payDetail = curCard;
     }
 
     records.unshift({
       id: Date.now(),
+      item: itemVal,
       date: dateVal,
       amount: amountVal,
       note: noteVal,
-      method: payDetail
+      methodType: curMethod,
+      methodDetail: payDetail
     });
 
     localStorage.setItem('expense_records', JSON.stringify(records));
-    document.getElementById('tx-amount').value = '';
-    document.getElementById('tx-note').value = '';
+    itemInput.value = '';
+    amountInput.value = '';
+    noteInput.value = '';
     renderHistory();
+  }
+
+  function hexToRgba(hex, alpha) {
+    let c = (hex || '#71717a').replace('#', '');
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    const num = parseInt(c, 16);
+    return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
   }
 
   function renderHistory() {
     const list = document.getElementById('history-list');
+    if (!list) return;
     list.innerHTML = '';
     let total = 0;
+
+    const colors = config.colors || DEFAULT_CONFIG.colors;
+
     records.forEach(r => {
       total += r.amount;
+      const type = r.methodType || 'mobile';
+      const itemColor = colors[type] || '#71717a';
+      const badgeBg = hexToRgba(itemColor, 0.16);
+      
       const item = document.createElement('div');
       item.className = 'history-item';
+      item.style.borderLeftColor = itemColor;
+      
+      let typeText = '行動支付';
+      if (type === 'card') typeText = '信用卡';
+      else if (type === 'bank') typeText = '帳戶';
+      else if (type === 'cash') typeText = '現金';
+
+      const noteHtml = r.note ? `<div class="item-note">備註：${escapeHtml(r.note)}</div>` : '';
+
       item.innerHTML = `
         <div class="item-left">
-          <div class="item-title">${escapeHtml(r.note)}</div>
-          <div class="item-sub">${r.date} · ${r.method}</div>
+          <div class="item-title-row">
+            <span class="badge" style="background:${badgeBg}; color:${itemColor};">${typeText}</span>
+            <div class="item-title">${escapeHtml(r.item)}</div>
+          </div>
+          <div class="item-sub">${r.date} · ${escapeHtml(r.methodDetail)}</div>
+          ${noteHtml}
         </div>
         <div class="item-right">
           <div class="item-amount">$${r.amount.toLocaleString()}</div>
-          <button class="item-del" onclick="deleteRecord(${r.id})">×</button>
+          <button type="button" class="item-del" onclick="moveToTrash(${r.id})">×</button>
         </div>
       `;
 
-      // 觸控左滑刪除手勢監聽
-      let startX = 0, startY = 0, isSwiping = false;
-      item.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
+      let startX = 0, startY = 0, isDragging = false, currentDiffX = 0;
+      
+      const onStart = (clientX, clientY) => {
+        startX = clientX;
+        startY = clientY;
+        isDragging = true;
+        currentDiffX = 0;
         item.style.transition = 'none';
-      }, { passive: true });
+      };
 
-      item.addEventListener('touchmove', (e) => {
-        const diffX = e.touches[0].clientX - startX;
-        const diffY = e.touches[0].clientY - startY;
+      const onMove = (clientX, clientY) => {
+        if (!isDragging) return;
+        const diffX = clientX - startX;
+        const diffY = clientY - startY;
         if (diffX < 0 && Math.abs(diffX) > Math.abs(diffY)) {
-          isSwiping = true;
+          currentDiffX = diffX;
           item.style.transform = `translateX(${diffX}px)`;
           item.style.opacity = Math.max(0.1, 1 - Math.abs(diffX) / 220);
         }
-      }, { passive: true });
+      };
 
-      item.addEventListener('touchend', (e) => {
+      const onEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
         item.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
-        const diffX = e.changedTouches[0].clientX - startX;
-        if (isSwiping && diffX < -80) {
+        if (currentDiffX < -80) {
           item.style.transform = 'translateX(-110%)';
           item.style.opacity = '0';
-          setTimeout(() => { deleteRecord(r.id); }, 200);
+          setTimeout(() => { moveToTrash(r.id); }, 200);
         } else {
           item.style.transform = 'translateX(0)';
           item.style.opacity = '1';
         }
-        isSwiping = false;
+      };
+
+      item.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+      item.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+      item.addEventListener('touchend', onEnd);
+
+      item.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.item-del')) return;
+        onStart(e.clientX, e.clientY);
+        const onMouseMove = (ev) => onMove(ev.clientX, ev.clientY);
+        const onMouseUp = () => {
+          onEnd();
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+        };
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
       });
 
       list.appendChild(item);
     });
-    document.getElementById('history-total').innerText = `合計: $${total.toLocaleString()}`;
+
+    const totalEl = document.getElementById('history-total');
+    if (totalEl) totalEl.innerText = `合計: $${total.toLocaleString()}`;
   }
 
-  function deleteRecord(id) {
+  // --- 回收桶機制（軟刪除） ---
+  function moveToTrash(id) {
+    const target = records.find(r => r.id === id);
+    if (!target) return;
+    
+    // 移入回收桶列表
+    trashRecords.unshift({ ...target, deletedAt: new Date().toLocaleString() });
     records = records.filter(r => r.id !== id);
+    
     localStorage.setItem('expense_records', JSON.stringify(records));
+    localStorage.setItem('expense_trash', JSON.stringify(trashRecords));
     renderHistory();
   }
 
-  function escapeHtml(str) {
-    return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+  function clearAllRecords() {
+    if (!records.length) {
+      alert('目前沒有任何紀錄！');
+      return;
+    }
+    if (confirm('確定要清空所有支出紀錄嗎？紀錄將移至「設定帳戶」內的回收桶。')) {
+      const nowStr = new Date().toLocaleString();
+      const moved = records.map(r => ({ ...r, deletedAt: nowStr }));
+      trashRecords = [...moved, ...trashRecords];
+      records = [];
+      
+      localStorage.setItem('expense_records', JSON.stringify(records));
+      localStorage.setItem('expense_trash', JSON.stringify(trashRecords));
+      renderHistory();
+    }
   }
 
-  // --- 精簡文檔讀寫邏輯（純文字格式） ---
-  function configToText(cfg) {
-    let lines = ['[行動支付]'];
-    cfg.mobile_platforms.forEach(p => {
-      lines.push(`${p.name}: ${p.cards.join(', ')}`);
+  function renderTrashList() {
+    const trashListEl = document.getElementById('trash-list');
+    if (!trashListEl) return;
+    trashListEl.innerHTML = '';
+
+    if (!trashRecords.length) {
+      trashListEl.innerHTML = '<div class="trash-empty-msg">回收桶空空如也</div>';
+      return;
+    }
+
+    trashRecords.forEach(tr => {
+      const item = document.createElement('div');
+      item.className = 'trash-item';
+      item.innerHTML = `
+        <div class="trash-item-info">
+          <div style="font-weight:600; color:#f4f4f5;">${escapeHtml(tr.item)} · $${tr.amount.toLocaleString()}</div>
+          <div style="font-size:0.7rem; color:#71717a;">${tr.date} · ${escapeHtml(tr.methodDetail)}</div>
+        </div>
+        <button type="button" class="trash-restore-btn" onclick="restoreFromTrash(${tr.id})">還原</button>
+      `;
+      trashListEl.appendChild(item);
     });
-    lines.push('\n[常用信用卡]');
-    lines.push(cfg.direct_cards.join(', '));
-    lines.push('\n[常用帳戶]');
-    lines.push(cfg.bank_accounts.join(', '));
+  }
+
+  function restoreFromTrash(id) {
+    const target = trashRecords.find(t => t.id === id);
+    if (!target) return;
+    
+    trashRecords = trashRecords.filter(t => t.id !== id);
+    const { deletedAt, ...restoredRecord } = target;
+    records.unshift(restoredRecord);
+    
+    // 重新按日期排序（最新日期排在最前）
+    records.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    localStorage.setItem('expense_records', JSON.stringify(records));
+    localStorage.setItem('expense_trash', JSON.stringify(trashRecords));
+    
+    renderHistory();
+    renderTrashList();
+  }
+
+  function emptyTrash() {
+    if (!trashRecords.length) {
+      alert('回收桶已經是空的！');
+      return;
+    }
+    if (confirm('確定要永久清空回收桶嗎？清空後將無法還原！')) {
+      trashRecords = [];
+      localStorage.setItem('expense_trash', JSON.stringify(trashRecords));
+      renderTrashList();
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+  }
+
+  function configToText(cfg) {
+    const c = cfg.colors || DEFAULT_CONFIG.colors;
+    let lines = ['[類別顏色]'];
+    lines.push(`行動支付: ${c.mobile || '#0ea5e9'}`);
+    lines.push(`信用卡: ${c.card || '#8b5cf6'}`);
+    lines.push(`帳戶: ${c.bank || '#f59e0b'}`);
+    lines.push(`現金: ${c.cash || '#10b981'}`);
+
+    lines.push('\n[行動支付]');
+    (cfg.mobile_platforms || []).forEach(p => {
+      lines.push(`${p.name}:`);
+      (p.cards || []).forEach(card => lines.push(card));
+    });
+
+    lines.push('\n[信用卡]');
+    (cfg.direct_cards || []).forEach(card => lines.push(card));
+
+    lines.push('\n[帳戶]');
+    (cfg.bank_accounts || []).forEach(b => lines.push(b));
+
     return lines.join('\n');
   }
 
   function textToConfig(text) {
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const rawLines = text.split('\n').map(l => l.trim());
     let section = '';
-    const newCfg = { mobile_platforms: [], direct_cards: [], bank_accounts: [] };
+    let curPlatformObj = null;
+    const newCfg = { 
+      colors: { ...DEFAULT_CONFIG.colors },
+      mobile_platforms: [], 
+      direct_cards: [], 
+      bank_accounts: [] 
+    };
 
-    lines.forEach(line => {
-      if (line.includes('[行動支付]')) { section = 'mobile'; return; }
-      if (line.includes('[常用信用卡]')) { section = 'card'; return; }
-      if (line.includes('[常用帳戶]')) { section = 'bank'; return; }
+    for (let line of rawLines) {
+      if (!line) continue;
+      
+      if (line.includes('[類別顏色]')) { section = 'color'; continue; }
+      if (line.includes('[行動支付]')) { section = 'mobile'; curPlatformObj = null; continue; }
+      if (line.includes('[信用卡]') || line.includes('[常用信用卡]')) { section = 'card'; curPlatformObj = null; continue; }
+      if (line.includes('[帳戶]') || line.includes('[常用帳戶]')) { section = 'bank'; curPlatformObj = null; continue; }
 
-      if (section === 'mobile') {
+      if (section === 'color') {
         const parts = line.split(/[:：]/);
         if (parts.length >= 2) {
-          const name = parts[0].trim();
-          const cards = parts[1].split(/[,，]/).map(c => c.trim()).filter(c => c.length > 0);
-          newCfg.mobile_platforms.push({ name, cards });
+          const key = parts[0].trim();
+          const val = parts[1].trim();
+          if (key.includes('現金')) newCfg.colors.cash = val;
+          else if (key.includes('行動支付')) newCfg.colors.mobile = val;
+          else if (key.includes('信用卡')) newCfg.colors.card = val;
+          else if (key.includes('帳戶')) newCfg.colors.bank = val;
+        }
+      } else if (section === 'mobile') {
+        if (line.endsWith(':') || line.endsWith('：')) {
+          const pName = line.replace(/[:：]$/, '').trim();
+          curPlatformObj = { name: pName, cards: [] };
+          newCfg.mobile_platforms.push(curPlatformObj);
+        } else if (line.includes(':') || line.includes('：')) {
+          const parts = line.split(/[:：]/);
+          const pName = parts[0].trim();
+          const rem = parts.slice(1).join(':').trim();
+          curPlatformObj = { name: pName, cards: [] };
+          newCfg.mobile_platforms.push(curPlatformObj);
+          if (rem) curPlatformObj.cards.push(rem);
+        } else {
+          if (curPlatformObj) {
+            curPlatformObj.cards.push(line);
+          }
         }
       } else if (section === 'card') {
-        const cards = line.split(/[,，]/).map(c => c.trim()).filter(c => c.length > 0);
-        newCfg.direct_cards.push(...cards);
+        newCfg.direct_cards.push(line);
       } else if (section === 'bank') {
-        const banks = line.split(/[,，]/).map(b => b.trim()).filter(b => b.length > 0);
-        newCfg.bank_accounts.push(...banks);
+        newCfg.bank_accounts.push(line);
       }
-    });
-
+    }
     return newCfg;
   }
 
   function openConfigModal() {
+    const c = config.colors || DEFAULT_CONFIG.colors;
+    document.getElementById('picker-mobile').value = c.mobile || '#0ea5e9';
+    document.getElementById('picker-card').value = c.card || '#8b5cf6';
+    document.getElementById('picker-bank').value = c.bank || '#f59e0b';
+    document.getElementById('picker-cash').value = c.cash || '#10b981';
+
     document.getElementById('config-text').value = configToText(config);
+    renderTrashList();
     document.getElementById('config-modal').style.display = 'flex';
   }
 
   function closeConfigModal() {
     document.getElementById('config-modal').style.display = 'none';
+  }
+
+  function syncPickerToText(type, hex) {
+    const textEl = document.getElementById('config-text');
+    let currentCfg = textToConfig(textEl.value);
+    currentCfg.colors[type] = hex;
+    textEl.value = configToText(currentCfg);
   }
 
   function saveConfigText() {
@@ -412,13 +767,23 @@
     curPlatform = '';
     curCard = '';
     renderSubMethods();
-    alert('卡池與帳戶設定儲存成功！');
+    renderHistory();
+    alert('設定與類別顏色儲存成功！');
   }
 
   function resetDefaultConfig() {
-    if (confirm('確定要將卡片設定還原回預設值嗎？')) {
+    if (confirm('確定要將帳戶與顏色設定還原回預設值嗎？')) {
       config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      localStorage.setItem('expense_config', JSON.stringify(config));
       document.getElementById('config-text').value = configToText(config);
+      
+      document.getElementById('picker-mobile').value = DEFAULT_CONFIG.colors.mobile;
+      document.getElementById('picker-card').value = DEFAULT_CONFIG.colors.card;
+      document.getElementById('picker-bank').value = DEFAULT_CONFIG.colors.bank;
+      document.getElementById('picker-cash').value = DEFAULT_CONFIG.colors.cash;
+      
+      renderSubMethods();
+      renderHistory();
     }
   }
 
