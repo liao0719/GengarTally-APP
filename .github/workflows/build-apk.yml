@@ -5,7 +5,6 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
-# 授權 Actions 擁有建立 Release 與 Tag 的寫入權限
 permissions:
   contents: write
 
@@ -16,6 +15,8 @@ jobs:
     steps:
       - name: 檢出專案代碼
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 設定 Node.js 環境
         uses: actions/setup-node@v4
@@ -27,6 +28,31 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+
+      # 鎖定固定數位簽章金鑰，解決覆蓋安裝時的簽章衝突
+      - name: 準備固定數位簽章金鑰
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f "gengar-debug.keystore" ]; then
+            echo "首次編譯：建立專屬永久簽章金鑰..."
+            keytool -genkeypair -v \
+              -keystore gengar-debug.keystore \
+              -alias androiddebugkey \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass android \
+              -keypass android \
+              -dname "CN=GengarTally,OU=Mobile,O=Gengar,L=TW,S=TW,C=TW"
+            
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add gengar-debug.keystore
+            git commit -m "ci: 建立永久簽章金鑰 [skip ci]"
+            git push
+          fi
+          # 將固定金鑰放置至 Gradle 預設位置
+          cp gengar-debug.keystore ~/.android/debug.keystore
 
       - name: 初始化本地容器與配置
         run: |
@@ -49,36 +75,34 @@ jobs:
 
       - name: 替換 App 桌面耿鬼圖示與背景色
         run: |
-          # 1. 替換所有自適應前景圖與傳統圖示
           find android/app/src/main/res/ -name "ic_launcher*.png" -exec cp gengar.png {} \; 2>/dev/null || true
           find android/app/src/main/res/ -name "ic_launcher*.webp" -exec cp gengar.png {} \; 2>/dev/null || true
-          
-          # 2. 將預設白色背景替換為 App 暗黑底色 (#09090b)
           sed -i 's/#FFFFFF/#09090b/g' android/app/src/main/res/values/ic_launcher_background.xml 2>/dev/null || true
-          
-          # 3. 將下載來源改為 JetBrains 鏡像源，並切換至 -bin.zip 避免 504 逾時
           sed -i 's|services.gradle.org/distributions|cache-redirector.jetbrains.com/services.gradle.org/distributions|g' android/gradle/wrapper/gradle-wrapper.properties
           sed -i 's/-all.zip/-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+
+      # 自動將 Android versionCode 與 versionName 遞增對齊 GitHub 執行編號
+      - name: 自動遞增 Android 版本序號
+        run: |
+          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/g" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"1.0.${{ github.run_number }}\"/g" android/app/build.gradle
 
       - name: 編譯生成 Android Debug APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
-          # 將產出的 apk 重新命名為 GengarTally.apk
           cp app/build/outputs/apk/debug/app-debug.apk ../GengarTally.apk
 
-      # 自動建立 GitHub Release 並上傳 APK
       - name: 自動發布至 GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: GengarTally v1.0.${{ github.run_number }}
           body: |
-            ### GengarTally 自動編譯版本
-            * 觸發分支：`${{ github.ref_name }}`
-            * 提交訊息：${{ github.event.head_commit.message }}
-            * 請直接下載下方 Assets 中的 `GengarTally.apk` 安裝使用。
+            ### GengarTally 自動編譯版本 (v1.0.${{ github.run_number }})
+            * 內部版本序號 (versionCode)：${{ github.run_number }}
+            * 數位簽章：固定金鑰 (`gengar-debug.keystore`)
           draft: false
           prerelease: false
           files: GengarTally.apk
