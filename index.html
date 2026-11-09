@@ -26,7 +26,7 @@
     h1 { font-size: 1.25rem; font-weight: 700; color: #fff; }
     .btn-text { background: #27272a; border: 1px solid #3f3f46; color: #a1a1aa; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; }
 
-    /* 頂部導航分頁 (Tabs) */
+    /* 頂部導航分頁 */
     .nav-tabs {
       display: flex; background: #18181b; border: 1px solid #27272a; 
       border-radius: 12px; padding: 3px; gap: 4px;
@@ -86,8 +86,12 @@
     .btn-opt.active { background: #6366f1; border-color: #818cf8; color: #fff; font-weight: 600; }
 
     .sub-box { background: #09090b; border: 1px dashed #3f3f46; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-    .chip-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
-    .chip { background: #18181b; border: 1px solid #3f3f46; color: #a1a1aa; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
+    .chip-scroll { 
+      display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;
+      scrollbar-width: none; touch-action: pan-x;
+    }
+    .chip-scroll::-webkit-scrollbar { display: none; }
+    .chip { background: #18181b; border: 1px solid #3f3f46; color: #a1a1aa; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; transition: background 0.15s ease; }
     .chip.active { background: #4f46e5; border-color: #6366f1; color: #fff; }
 
     .select-wrap { display: flex; flex-direction: column; gap: 6px; }
@@ -145,7 +149,7 @@
       line-height: 1.35; pointer-events: none; word-break: break-all;
     }
 
-    /* 頂部微膠囊 Toast (新增成功即時提示) */
+    /* 頂部微膠囊 Toast */
     .top-toast {
       position: fixed; top: 16px; left: 50%;
       transform: translateX(-50%) translateY(-80px);
@@ -163,7 +167,7 @@
       color: #10b981; font-weight: 800; font-size: 1rem;
     }
 
-    /* 操作選單彈窗 (編輯 / 複製) */
+    /* 操作選單彈窗 */
     .action-sheet {
       background: #18181b; border: 1px solid #3f3f46; border-radius: 16px;
       width: 100%; max-width: 440px; padding: 16px; display: flex;
@@ -209,6 +213,7 @@
     .color-picker-item input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
     .color-picker-item input[type="color"]::-webkit-color-swatch { border: 1px solid #3f3f46; border-radius: 50%; }
 
+    /* 備份工具列 */
     .config-tools-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
 
     .modal textarea { 
@@ -237,13 +242,11 @@
     <button type="button" class="btn-text" onclick="openConfigModal()">設定帳戶</button>
   </header>
 
-  <!-- 頂部滑動切換標籤 -->
   <div class="nav-tabs">
     <button type="button" id="tab-btn-0" class="tab-btn active" onclick="switchPage(0)">記帳</button>
     <button type="button" id="tab-btn-1" class="tab-btn" onclick="switchPage(1)">支出明細 (<span id="tab-count">0</span>)</button>
   </div>
 
-  <!-- 雙分頁左右輪播容器 -->
   <div class="slider-viewport" id="slider-viewport">
     <div class="slider-track" id="slider-track">
       
@@ -352,7 +355,7 @@
       </label>
     </div>
 
-    <!-- 備份工具列 -->
+    <!-- 備份工具列：支援原生下載、原生分享、一鍵複製與匯入 -->
     <div class="config-tools-row">
       <span style="font-size:0.8rem; color:#a1a1aa;">文檔備份：</span>
       <div style="display:flex; gap:5px;">
@@ -438,7 +441,7 @@
     ]
   };
 
-  const CURRENT_CONFIG_VER = "20261109_custom_v5";
+  const CURRENT_CONFIG_VER = "20261109_custom_v6";
 
   let config;
   try {
@@ -488,7 +491,7 @@
   let curPlatform = '';
   let curCard = '';
 
-  let currentPage = 0; // 0: 記帳, 1: 支出明細
+  let currentPage = 0;
   let editingRecordId = null;
   let activeSelectedRecord = null;
   let lastDeletedRecord = null;
@@ -518,7 +521,6 @@
     });
   }
 
-  // --- 分頁滑動與切換控制 ---
   function switchPage(pageIdx) {
     currentPage = pageIdx;
     const track = document.getElementById('slider-track');
@@ -534,7 +536,6 @@
     let startX = 0, startY = 0, isDragging = false;
 
     viewport.addEventListener('touchstart', (e) => {
-      // 若觸碰點在歷史清單項目內，將手勢留給刪除處理
       if (e.target.closest('.history-item') || e.target.closest('.quick-chip')) return;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
@@ -549,18 +550,16 @@
       const diffX = endX - startX;
       const diffY = endY - startY;
 
-      // 水平滑動幅度大於垂直幅度時觸發切頁
       if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.3) {
         if (diffX < 0 && currentPage === 0) {
-          switchPage(1); // 第1頁往左滑 -> 切換到第2頁
+          switchPage(1);
         } else if (diffX > 0 && currentPage === 1) {
-          switchPage(0); // 第2頁往右滑 -> 切換到第1頁
+          switchPage(0);
         }
       }
     });
   }
 
-  // --- 頂部微膠囊 Toast 提示 ---
   function showTopToast(text) {
     const toast = document.getElementById('top-toast');
     const msg = document.getElementById('top-toast-msg');
@@ -717,10 +716,22 @@
         chip.type = 'button';
         chip.className = 'chip' + (p.name === curPlatform ? ' active' : '');
         chip.innerText = p.name;
-        chip.onclick = () => { curPlatform = p.name; curCard = ''; renderSubMethods(); };
+        chip.onclick = () => { 
+          curPlatform = p.name; 
+          curCard = ''; 
+          renderSubMethods(); 
+        };
         platformRow.appendChild(chip);
       });
       panel.appendChild(platformRow);
+
+      // 自動平滑捲動至目前選取的行動支付選項，避免強制跳回最左邊
+      setTimeout(() => {
+        const activeChip = platformRow.querySelector('.chip.active');
+        if (activeChip) {
+          activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+      }, 10);
 
       const activePlatform = platforms.find(p => p.name === curPlatform);
       const cards = (activePlatform && activePlatform.cards) ? activePlatform.cards : [];
@@ -849,7 +860,6 @@
         methodType: curMethod,
         methodDetail: payDetail
       });
-      // 成功新增提示與觸覺回饋
       if (navigator.vibrate) navigator.vibrate(35);
       showTopToast(`已記錄：${itemVal} $${amountVal.toLocaleString()}`);
     }
@@ -945,7 +955,6 @@
 
         if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) hasMoved = true;
 
-        // 向左滑動為刪除手勢
         if (diffX < 0 && Math.abs(diffX) > Math.abs(diffY)) {
           currentDiffX = diffX;
           item.style.transform = `translateX(${diffX}px)`;
@@ -958,7 +967,6 @@
         isDragging = false;
         const diffX = clientX !== undefined ? (clientX - startX) : currentDiffX;
         
-        // 若向右大幅滑動，切回第 1 頁記帳
         if (diffX > 75 && Math.abs(diffX) > Math.abs(clientY - startY)) {
           switchPage(0);
           return;
@@ -1028,14 +1036,14 @@
     if (!activeSelectedRecord) return;
     loadRecordIntoForm(activeSelectedRecord, true);
     closeActionModal();
-    switchPage(0); // 編輯模式自動切回第 1 頁
+    switchPage(0);
   }
 
   function triggerCopyRecord() {
     if (!activeSelectedRecord) return;
     loadRecordIntoForm(activeSelectedRecord, false);
     closeActionModal();
-    switchPage(0); // 複製模式自動切回第 1 頁
+    switchPage(0);
   }
 
   function loadRecordIntoForm(r, isEdit) {
@@ -1288,173 +1296,4 @@
         newCfg.bank_accounts.push(line);
       }
     }
-    return newCfg;
-  }
-
-  function openConfigModal() {
-    const c = config.colors || DEFAULT_CONFIG.colors;
-    document.getElementById('picker-mobile').value = c.mobile || '#ff0000';
-    document.getElementById('picker-card').value = c.card || '#00ffff';
-    document.getElementById('picker-bank').value = c.bank || '#ffff00';
-    document.getElementById('picker-cash').value = c.cash || '#00ff00';
-
-    document.getElementById('config-text').value = configToText(config);
-    renderTrashList();
-    
-    history.pushState({ modalOpen: true }, '');
-    document.getElementById('config-modal').style.display = 'flex';
-  }
-
-  function closeConfigModal() {
-    const modal = document.getElementById('config-modal');
-    if (modal && modal.style.display === 'flex') {
-      modal.style.display = 'none';
-      if (history.state && history.state.modalOpen) {
-        history.back();
-      }
-    }
-  }
-
-  function syncPickerToText(type, hex) {
-    const textEl = document.getElementById('config-text');
-    let currentCfg = textToConfig(textEl.value);
-    currentCfg.colors[type] = hex;
-    textEl.value = configToText(currentCfg);
-  }
-
-  function saveConfigText() {
-    const rawText = document.getElementById('config-text').value;
-    const newConfig = textToConfig(rawText);
-    if (!newConfig.mobile_platforms.length && !newConfig.direct_cards.length && !newConfig.bank_accounts.length) {
-      alert('請至少填寫一項卡片或支付平台！');
-      return;
-    }
-    config = newConfig;
-    localStorage.setItem('expense_config', JSON.stringify(config));
-    closeConfigModal();
-    curPlatform = '';
-    curCard = '';
-    renderQuickItems();
-    renderSubMethods();
-    renderHistory();
-    alert('設定已儲存更新！');
-  }
-
-  function resetDefaultConfig() {
-    if (confirm('確定要將帳戶與顏色設定還原回預設值嗎？')) {
-      config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
-      localStorage.setItem('expense_config', JSON.stringify(config));
-      document.getElementById('config-text').value = configToText(config);
-      
-      document.getElementById('picker-mobile').value = DEFAULT_CONFIG.colors.mobile;
-      document.getElementById('picker-card').value = DEFAULT_CONFIG.colors.card;
-      document.getElementById('picker-bank').value = DEFAULT_CONFIG.colors.bank;
-      document.getElementById('picker-cash').value = DEFAULT_CONFIG.colors.cash;
-      
-      renderQuickItems();
-      renderSubMethods();
-      renderHistory();
-    }
-  }
-
-  async function copyConfigToClipboard() {
-    const text = document.getElementById('config-text').value || configToText(config);
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const textarea = document.getElementById('config-text');
-        textarea.select();
-        document.execCommand('copy');
-      }
-      alert('設定文檔已成功複製到剪貼簿！可直接貼至記事本。');
-    } catch (e) {
-      alert('複製失敗，請手動選取文字複製。');
-    }
-  }
-
-  function downloadConfigFile() {
-    const text = document.getElementById('config-text').value || configToText(config);
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-    const filename = `GengarTally_Config_${dateStr}.txt`;
-
-    try {
-      const encodedUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
-      const a = document.createElement('a');
-      a.setAttribute('href', encodedUri);
-      a.setAttribute('download', filename);
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (e) {
-      alert('下載失敗，建議改用「📋 複製」保存。');
-    }
-  }
-
-  async function shareConfigFile() {
-    const text = document.getElementById('config-text').value || configToText(config);
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'GengarTally 設定備份',
-          text: text
-        });
-      } catch (err) {
-        if (err.name !== 'AbortError') copyConfigToClipboard();
-      }
-    } else {
-      copyConfigToClipboard();
-    }
-  }
-
-  function triggerImportConfig() {
-    const input = document.getElementById('config-file-input');
-    if (input) {
-      input.value = '';
-      input.click();
-    }
-  }
-
-  function handleImportConfigFile(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        const textContent = e.target.result;
-        const parsed = textToConfig(textContent);
-        
-        if (!parsed.mobile_platforms.length && !parsed.direct_cards.length && !parsed.bank_accounts.length) {
-          alert('匯入失敗：檔案格式不正確或內容為空！');
-          return;
-        }
-
-        config = parsed;
-        localStorage.setItem('expense_config', JSON.stringify(config));
-        document.getElementById('config-text').value = configToText(config);
-
-        const c = config.colors || DEFAULT_CONFIG.colors;
-        document.getElementById('picker-mobile').value = c.mobile || '#ff0000';
-        document.getElementById('picker-card').value = c.card || '#00ffff';
-        document.getElementById('picker-bank').value = c.bank || '#ffff00';
-        document.getElementById('picker-cash').value = c.cash || '#00ff00';
-
-        curPlatform = '';
-        curCard = '';
-        renderQuickItems();
-        renderSubMethods();
-        renderHistory();
-        alert('設定文檔匯入成功！');
-      } catch (err) {
-        alert('檔案讀取失敗，請確認檔案格式是否正確。');
-      }
-    };
-    reader.readAsText(file);
-  }
-
-  init();
-</script>
-</body>
-</html>
+    return newCfg
