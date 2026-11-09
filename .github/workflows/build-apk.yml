@@ -24,6 +24,10 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      # 加入官方 Gradle 快取與加速套件
+      - name: 設定 Gradle 環境
+        uses: gradle/actions/setup-gradle@v4
+
       - name: 初始化本地容器與配置
         run: |
           mkdir -p www
@@ -49,14 +53,17 @@ jobs:
           find android/app/src/main/res/ -name "ic_launcher*.png" -exec cp gengar.png {} \; 2>/dev/null || true
           find android/app/src/main/res/ -name "ic_launcher*.webp" -exec cp gengar.png {} \; 2>/dev/null || true
           
-          # 2. 將預設的白色背景 (#FFFFFF) 修改為 App 極簡暗黑底色 (#09090b)
+          # 2. 將預設白色背景替換為 App 暗黑底色
           sed -i 's/#FFFFFF/#09090b/g' android/app/src/main/res/values/ic_launcher_background.xml 2>/dev/null || true
+          
+          # 3. 將 Gradle 下載包改為體積更小更快的 -bin.zip，避免 504 逾時
+          sed -i 's/-all.zip/-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties 2>/dev/null || true
 
       - name: 編譯生成 Android Debug APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
 
       - name: 上傳編譯成品 (APK Artifact)
         uses: actions/upload-artifact@v4
