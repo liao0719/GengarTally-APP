@@ -28,12 +28,31 @@
     
     .card { background: #18181b; border: 1px solid #27272a; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
     
-    .text-input { background: #09090b; border: 1px solid #3f3f46; color: #fff; padding: 11px 12px; border-radius: 8px; font-size: 0.95rem; outline: none; }
-    .text-input:focus { border-color: #818cf8; }
-
     .date-row { display: flex; gap: 8px; align-items: center; }
     .date-input { flex: 1; background: #09090b; border: 1px solid #3f3f46; color: #fff; padding: 10px; border-radius: 8px; font-size: 0.95rem; outline: none; }
     .btn-today { background: #3f3f46; border: none; color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
+
+    .item-group { display: flex; flex-direction: column; gap: 6px; }
+    .text-input { background: #09090b; border: 1px solid #3f3f46; color: #fff; padding: 11px 12px; border-radius: 8px; font-size: 0.95rem; outline: none; }
+    .text-input:focus { border-color: #818cf8; }
+
+    /* 常用項目快捷膠囊滑動條 */
+    .quick-scroll {
+      display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 4px;
+      scrollbar-width: none; touch-action: pan-x;
+    }
+    .quick-scroll::-webkit-scrollbar { display: none; }
+    .quick-chip {
+      background: #27272a; border: 1px solid #3f3f46; color: #d4d4d8;
+      font-size: 0.75rem; padding: 3px 9px; border-radius: 12px;
+      white-space: nowrap; cursor: pointer; user-select: none;
+      transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+    }
+    .quick-chip:active { background: #3f3f46; }
+    .quick-chip.dragging {
+      opacity: 0.6; transform: scale(1.08); border-color: #818cf8;
+      background: #312e81; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
 
     .amount-wrap { display: flex; align-items: center; background: #09090b; border: 1px solid #3f3f46; border-radius: 10px; padding: 0 12px; }
     .currency { font-size: 1.5rem; font-weight: 700; color: #71717a; margin-right: 6px; }
@@ -89,7 +108,7 @@
     .item-amount { font-size: 1.05rem; font-weight: 700; color: #f87171; pointer-events: none; }
     .item-del { background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 1.1rem; padding: 0 6px; }
 
-    /* 設定彈窗樣式 */
+    /* 設定彈窗 */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; justify-content: center; align-items: center; padding: 16px; z-index: 99; }
     .modal { background: #18181b; border: 1px solid #3f3f46; border-radius: 14px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
     .modal-title { font-size: 1.05rem; font-weight: 700; color: #fff; }
@@ -102,13 +121,13 @@
     .color-picker-item input[type="color"]::-webkit-color-swatch { border: 1px solid #3f3f46; border-radius: 50%; }
 
     .modal textarea { 
-      width: 100%; height: 210px; background: #09090b; border: 1px solid #3f3f46; 
+      width: 100%; height: 220px; background: #09090b; border: 1px solid #3f3f46; 
       color: #38bdf8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 0.9rem; padding: 12px; 
       border-radius: 8px; outline: none; resize: none; line-height: 1.6;
     }
     .modal-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
 
-    /* 回收桶樣式 */
+    /* 回收桶 */
     .trash-section { border-top: 1px solid #27272a; padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
     .trash-header { display: flex; justify-content: space-between; align-items: center; }
     .trash-title { font-size: 0.88rem; font-weight: 600; color: #f87171; display: flex; align-items: center; gap: 4px; }
@@ -133,7 +152,11 @@
       <button type="button" class="btn-today" onclick="setToday()">今天</button>
     </div>
 
-    <input type="text" id="tx-item" class="text-input" placeholder="支出項目">
+    <!-- 支出項目與快捷標籤欄位 -->
+    <div class="item-group">
+      <input type="text" id="tx-item" class="text-input" placeholder="支出項目">
+      <div id="quick-items-scroll" class="quick-scroll"></div>
+    </div>
 
     <div class="amount-wrap">
       <span class="currency">$</span>
@@ -173,7 +196,7 @@
 <div id="config-modal" class="modal-backdrop">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-title">快速設定帳戶</div>
-    <div class="modal-desc">可直接點選色塊挑選顏色，或在下方文本手動修改色碼：</div>
+    <div class="modal-desc">可直接挑選類別顏色；或在文本手動設定常用標籤（最多10個）：</div>
     
     <div class="color-picker-row">
       <label class="color-picker-item">
@@ -222,6 +245,7 @@
       bank: "#f59e0b",
       cash: "#10b981"
     },
+    quick_items: ["711", "蝦皮", "吃飯", "加油"],
     mobile_platforms: [
       { name: "LINE Pay", cards: ["玉山 Unicard", "LINE Pay 餘額"] },
       { name: "街口支付", cards: ["國泰世華 CUBE 卡", "街口帳戶餘額"] },
@@ -237,6 +261,7 @@
     if (savedCfg && Array.isArray(savedCfg.mobile_platforms) && Array.isArray(savedCfg.direct_cards) && Array.isArray(savedCfg.bank_accounts)) {
       config = savedCfg;
       if (!config.colors) config.colors = { ...DEFAULT_CONFIG.colors };
+      if (!Array.isArray(config.quick_items)) config.quick_items = [...DEFAULT_CONFIG.quick_items];
     } else {
       config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
     }
@@ -278,16 +303,15 @@
 
   function init() {
     setToday();
+    renderQuickItems();
     renderSubMethods();
     renderHistory();
 
-    // 點選遮罩空白處直接關閉設定
     const modalBackdrop = document.getElementById('config-modal');
     modalBackdrop.addEventListener('click', () => {
       closeConfigModal();
     });
 
-    // 攔截 Android 實體返回鍵 / 側滑手勢
     window.addEventListener('popstate', (e) => {
       const modal = document.getElementById('config-modal');
       if (modal && modal.style.display === 'flex') {
@@ -303,6 +327,113 @@
     const d = String(now.getDate()).padStart(2, '0');
     const input = document.getElementById('tx-date');
     if (input) input.value = `${y}-${m}-${d}`;
+  }
+
+  // --- 常用項目膠囊渲染與長按拖曳排序 ---
+  function renderQuickItems() {
+    const container = document.getElementById('quick-items-scroll');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const items = config.quick_items || [];
+    if (!items.length) {
+      container.style.display = 'none';
+      return;
+    }
+    container.style.display = 'flex';
+
+    items.forEach((itemText, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'quick-chip';
+      chip.innerText = itemText;
+      chip.draggable = true;
+      chip.dataset.index = idx;
+
+      // 電腦滑鼠拖曳
+      chip.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', idx);
+        chip.classList.add('dragging');
+      });
+      chip.addEventListener('dragend', () => {
+        chip.classList.remove('dragging');
+      });
+      chip.addEventListener('dragover', (e) => e.preventDefault());
+      chip.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+        const toIdx = idx;
+        if (fromIdx !== toIdx) {
+          reorderQuickItem(fromIdx, toIdx);
+        }
+      });
+
+      // 手機觸控長按拖曳
+      let holdTimer = null;
+      let isDragging = false;
+      let startX = 0, startY = 0;
+
+      chip.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        isDragging = false;
+        holdTimer = setTimeout(() => {
+          isDragging = true;
+          chip.classList.add('dragging');
+          if (navigator.vibrate) navigator.vibrate(30);
+        }, 260);
+      }, { passive: true });
+
+      chip.addEventListener('touchmove', (e) => {
+        const diffX = Math.abs(e.touches[0].clientX - startX);
+        const diffY = Math.abs(e.touches[0].clientY - startY);
+        if (!isDragging && (diffX > 8 || diffY > 8)) {
+          clearTimeout(holdTimer);
+        }
+        if (isDragging) {
+          e.preventDefault();
+          const targetElem = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+          const targetChip = targetElem ? targetElem.closest('.quick-chip') : null;
+          if (targetChip && targetChip !== chip) {
+            const targetIdx = parseInt(targetChip.dataset.index, 10);
+            reorderQuickItem(idx, targetIdx);
+          }
+        }
+      }, { passive: false });
+
+      chip.addEventListener('touchend', () => {
+        clearTimeout(holdTimer);
+        if (isDragging) {
+          isDragging = false;
+          chip.classList.remove('dragging');
+        } else {
+          selectQuickItem(itemText);
+        }
+      });
+
+      // 電腦點擊填寫
+      chip.addEventListener('click', (e) => {
+        if (!chip.classList.contains('dragging')) {
+          selectQuickItem(itemText);
+        }
+      });
+
+      container.appendChild(chip);
+    });
+  }
+
+  function reorderQuickItem(fromIdx, toIdx) {
+    if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0) return;
+    const moved = config.quick_items.splice(fromIdx, 1)[0];
+    config.quick_items.splice(toIdx, 0, moved);
+    localStorage.setItem('expense_config', JSON.stringify(config));
+    renderQuickItems();
+  }
+
+  function selectQuickItem(text) {
+    const itemInput = document.getElementById('tx-item');
+    const amountInput = document.getElementById('tx-amount');
+    if (itemInput) itemInput.value = text;
+    if (amountInput) amountInput.focus();
   }
 
   function setMainMethod(m) {
@@ -669,6 +800,9 @@
     lines.push(`帳戶: ${c.bank || '#f59e0b'}`);
     lines.push(`現金: ${c.cash || '#10b981'}`);
 
+    lines.push('\n[常用項目]');
+    (cfg.quick_items || []).forEach(item => lines.push(item));
+
     lines.push('\n[行動支付]');
     (cfg.mobile_platforms || []).forEach(p => {
       lines.push(`${p.name}:`);
@@ -690,6 +824,7 @@
     let curPlatformObj = null;
     const newCfg = { 
       colors: { ...DEFAULT_CONFIG.colors },
+      quick_items: [],
       mobile_platforms: [], 
       direct_cards: [], 
       bank_accounts: [] 
@@ -699,6 +834,7 @@
       if (!line) continue;
       
       if (line.includes('[類別顏色]')) { section = 'color'; continue; }
+      if (line.includes('[常用項目]')) { section = 'quick'; curPlatformObj = null; continue; }
       if (line.includes('[行動支付]')) { section = 'mobile'; curPlatformObj = null; continue; }
       if (line.includes('[信用卡]') || line.includes('[常用信用卡]')) { section = 'card'; curPlatformObj = null; continue; }
       if (line.includes('[帳戶]') || line.includes('[常用帳戶]')) { section = 'bank'; curPlatformObj = null; continue; }
@@ -712,6 +848,10 @@
           else if (key.includes('行動支付')) newCfg.colors.mobile = val;
           else if (key.includes('信用卡')) newCfg.colors.card = val;
           else if (key.includes('帳戶')) newCfg.colors.bank = val;
+        }
+      } else if (section === 'quick') {
+        if (newCfg.quick_items.length < 10) {
+          newCfg.quick_items.push(line);
         }
       } else if (section === 'mobile') {
         if (line.endsWith(':') || line.endsWith('：')) {
@@ -739,7 +879,6 @@
     return newCfg;
   }
 
-  // --- 設定彈窗開關控制（支援返回鍵攔截） ---
   function openConfigModal() {
     const c = config.colors || DEFAULT_CONFIG.colors;
     document.getElementById('picker-mobile').value = c.mobile || '#0ea5e9';
@@ -750,7 +889,6 @@
     document.getElementById('config-text').value = configToText(config);
     renderTrashList();
     
-    // 推入歷史狀態，讓返回鍵可以被 popstate 捕捉
     history.pushState({ modalOpen: true }, '');
     document.getElementById('config-modal').style.display = 'flex';
   }
@@ -759,7 +897,6 @@
     const modal = document.getElementById('config-modal');
     if (modal && modal.style.display === 'flex') {
       modal.style.display = 'none';
-      // 如果當前狀態是在彈窗中，手動觸發 back 對齊歷史紀錄
       if (history.state && history.state.modalOpen) {
         history.back();
       }
@@ -785,9 +922,10 @@
     closeConfigModal();
     curPlatform = '';
     curCard = '';
+    renderQuickItems();
     renderSubMethods();
     renderHistory();
-    alert('設定與類別顏色儲存成功！');
+    alert('設定已儲存更新！');
   }
 
   function resetDefaultConfig() {
@@ -801,6 +939,7 @@
       document.getElementById('picker-bank').value = DEFAULT_CONFIG.colors.bank;
       document.getElementById('picker-cash').value = DEFAULT_CONFIG.colors.cash;
       
+      renderQuickItems();
       renderSubMethods();
       renderHistory();
     }
