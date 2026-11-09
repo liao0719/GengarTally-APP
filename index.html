@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>極簡記帳</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#18181b">
+  <link rel="apple-touch-icon" href="gengar.png">
+  
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #09090b; color: #f4f4f5; display: flex; justify-content: center; min-height: 100vh; padding: 12px; }
+    .app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+    h1 { font-size: 1.25rem; font-weight: 700; color: #fff; }
+    .btn-text { background: #27272a; border: 1px solid #3f3f46; color: #a1a1aa; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; }
+    
+    .card { background: #18181b; border: 1px solid #27272a; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    
+    .date-row { display: flex; gap: 8px; align-items: center; }
+    .date-input { flex: 1; background: #09090b; border: 1px solid #3f3f46; color: #fff; padding: 10px; border-radius: 8px; font-size: 0.95rem; outline: none; }
+    .btn-today { background: #3f3f46; border: none; color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
+
+    .amount-wrap { display: flex; align-items: center; background: #09090b; border: 1px solid #3f3f46; border-radius: 10px; padding: 0 12px; }
+    .currency { font-size: 1.5rem; font-weight: 700; color: #71717a; margin-right: 6px; }
+    .amount-input { width: 100%; background: transparent; border: none; color: #fff; font-size: 2rem; font-weight: 700; padding: 10px 0; outline: none; }
+
+    .section-label { font-size: 0.8rem; font-weight: 600; color: #a1a1aa; margin-bottom: 4px; }
+    .btn-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .btn-opt { background: #09090b; border: 1px solid #27272a; color: #d4d4d8; padding: 10px 4px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; text-align: center; }
+    .btn-opt.active { background: #6366f1; border-color: #818cf8; color: #fff; font-weight: 600; }
+
+    .sub-box { background: #09090b; border: 1px dashed #3f3f46; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .chip-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+    .chip { background: #18181b; border: 1px solid #3f3f46; color: #a1a1aa; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
+    .chip.active { background: #4f46e5; border-color: #6366f1; color: #fff; }
+
+    .note-input { background: #09090b; border: 1px solid #3f3f46; color: #fff; padding: 10px; border-radius: 8px; font-size: 0.9rem; outline: none; }
+    .btn-submit { background: #10b981; border: none; color: #fff; padding: 14px; border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; margin-top: 4px; }
+    .btn-submit:active { opacity: 0.85; }
+
+    .history-card { background: #18181b; border: 1px solid #27272a; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .history-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: 600; color: #a1a1aa; }
+    .swipe-tip { font-size: 0.72rem; color: #71717a; margin-top: -4px; }
+    .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; overflow-x: hidden; }
+    
+    /* 左滑手勢樣式 */
+    .history-item { 
+      display: flex; justify-content: space-between; align-items: center; 
+      background: #09090b; padding: 10px 12px; border-radius: 8px; border: 1px solid #27272a;
+      position: relative; touch-action: pan-y; user-select: none;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    .item-left { display: flex; flex-direction: column; gap: 2px; pointer-events: none; }
+    .item-title { font-size: 0.9rem; font-weight: 600; color: #f4f4f5; }
+    .item-sub { font-size: 0.75rem; color: #71717a; }
+    .item-right { display: flex; align-items: center; gap: 10px; pointer-events: none; }
+    .item-amount { font-size: 1rem; font-weight: 700; color: #f87171; }
+    .item-del { background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 1.1rem; padding: 0 4px; pointer-events: auto; }
+
+    /* 設定彈窗 */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; justify-content: center; align-items: center; padding: 16px; z-index: 99; }
+    .modal { background: #18181b; border: 1px solid #3f3f46; border-radius: 14px; width: 100%; max-width: 440px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .modal-title { font-size: 1.05rem; font-weight: 700; color: #fff; }
+    .modal-desc { font-size: 0.8rem; color: #a1a1aa; line-height: 1.4; }
+    .modal textarea { 
+      width: 100%; height: 230px; background: #09090b; border: 1px solid #3f3f46; 
+      color: #38bdf8; font-family: monospace; font-size: 0.85rem; padding: 10px; 
+      border-radius: 8px; outline: none; resize: none; line-height: 1.5;
+    }
+    .modal-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <header>
+    <h1>極簡記帳</h1>
+    <button class="btn-text" onclick="openConfigModal()">設定卡池與帳戶</button>
+  </header>
+
+  <div class="card">
+    <div class="date-row">
+      <input type="date" id="tx-date" class="date-input">
+      <button class="btn-today" onclick="setToday()">今天</button>
+    </div>
+
+    <div class="amount-wrap">
+      <span class="currency">$</span>
+      <input type="number" id="tx-amount" class="amount-input" placeholder="0" inputmode="decimal">
+    </div>
+
+    <div>
+      <div class="section-label">付款方式</div>
+      <div class="btn-grid">
+        <button class="btn-opt active" onclick="setMainMethod('cash')">現金</button>
+        <button class="btn-opt" onclick="setMainMethod('mobile')">行動支付</button>
+        <button class="btn-opt" onclick="setMainMethod('card')">信用卡</button>
+        <button class="btn-opt" onclick="setMainMethod('bank')">銀行帳戶</button>
+      </div>
+    </div>
+
+    <div id="sub-method-panel" class="sub-box" style="display:none;"></div>
+
+    <input type="text" id="tx-note" class="note-input" placeholder="備註（例：午餐、加值）">
+
+    <button class="btn-submit" onclick="submitRecord()">記錄這筆支出</button>
+  </div>
+
+  <div class="history-card">
+    <div class="history-header">
+      <span>近期支出紀錄</span>
+      <span id="history-total">合計: $0</span>
+    </div>
+    <div class="swipe-tip">向左滑動任一筆紀錄可直接刪除</div>
+    <div id="history-list" class="history-list"></div>
+  </div>
+</div>
+
+<!-- 精簡化設定彈窗 -->
+<div id="config-modal" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title">快速設定卡池與帳戶</div>
+    <div class="modal-desc">直接在此編輯純文字清單，以逗號區隔卡片：</div>
+    <textarea id="config-text" placeholder="讀取中..."></textarea>
+    <div class="modal-btns">
+      <button class="btn-text" style="color:#ef4444;" onclick="resetDefaultConfig()">還原預設</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-text" onclick="closeConfigModal()">取消</button>
+        <button class="btn-submit" style="padding:8px 16px; font-size:0.85rem;" onclick="saveConfigText()">儲存變更</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DEFAULT_CONFIG = {
+    mobile_platforms: [
+      { name: "LINE Pay", cards: ["玉山 Unicard", "永豐 SPORT 卡", "LINE Pay 餘額"] },
+      { name: "街口支付", cards: ["國泰世華 CUBE 卡", "街口帳戶餘額"] },
+      { name: "Apple Pay", cards: ["國泰世華 CUBE 卡", "玉山 Unicard", "永豐 SPORT 卡"] },
+      { name: "全支付", cards: ["國泰世華 CUBE 卡", "全支付帳戶"] }
+    ],
+    direct_cards: ["國泰世華 CUBE 卡", "玉山 Unicard", "永豐 SPORT 卡"],
+    bank_accounts: ["國泰世華帳戶", "玉山銀行帳戶", "永豐銀行帳戶"]
+  };
+
+  let config = JSON.parse(localStorage.getItem('expense_config')) || DEFAULT_CONFIG;
+  let records = JSON.parse(localStorage.getItem('expense_records')) || [];
+
+  let curMethod = 'cash';
+  let curPlatform = '';
+  let curCard = '';
+
+  function init() {
+    setToday();
+    renderSubMethods();
+    renderHistory();
+  }
+
+  function setToday() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    document.getElementById('tx-date').value = `${y}-${m}-${d}`;
+  }
+
+  function setMainMethod(m) {
+    curMethod = m;
+    curPlatform = '';
+    curCard = '';
+    document.querySelectorAll('.btn-grid .btn-opt').forEach((btn, idx) => {
+      btn.classList.toggle('active', ['cash','mobile','card','bank'][idx] === m);
+    });
+    renderSubMethods();
+  }
+
+  function renderSubMethods() {
+    const panel = document.getElementById('sub-method-panel');
+    if (curMethod === 'cash') {
+      panel.style.display = 'none';
+      return;
+    }
+    panel.style.display = 'flex';
+    panel.innerHTML = '';
+
+    if (curMethod === 'mobile') {
+      if (!curPlatform && config.mobile_platforms.length) curPlatform = config.mobile_platforms[0].name;
+      const row1 = document.createElement('div');
+      row1.className = 'chip-scroll';
+      config.mobile_platforms.forEach(p => {
+        const chip = document.createElement('button');
+        chip.className = 'chip' + (p.name === curPlatform ? ' active' : '');
+        chip.innerText = p.name;
+        chip.onclick = () => { curPlatform = p.name; curCard = ''; renderSubMethods(); };
+        row1.appendChild(chip);
+      });
+      panel.appendChild(row1);
+
+      const activePlatform = config.mobile_platforms.find(p => p.name === curPlatform);
+      if (activePlatform && activePlatform.cards.length) {
+        if (!curCard) curCard = activePlatform.cards[0];
+        const row2 = document.createElement('div');
+        row2.className = 'chip-scroll';
+        activePlatform.cards.forEach(c => {
+          const chip = document.createElement('button');
+          chip.className = 'chip' + (c === curCard ? ' active' : '');
+          chip.innerText = c;
+          chip.onclick = () => { curCard = c; renderSubMethods(); };
+          row2.appendChild(chip);
+        });
+        panel.appendChild(row2);
+      }
+    } else if (curMethod === 'card') {
+      if (!curCard && config.direct_cards.length) curCard = config.direct_cards[0];
+      const row = document.createElement('div');
+      row.className = 'chip-scroll';
+      config.direct_cards.forEach(c => {
+        const chip = document.createElement('button');
+        chip.className = 'chip' + (c === curCard ? ' active' : '');
+        chip.innerText = c;
+        chip.onclick = () => { curCard = c; renderSubMethods(); };
+        row.appendChild(chip);
+      });
+      panel.appendChild(row);
+    } else if (curMethod === 'bank') {
+      if (!curCard && config.bank_accounts.length) curCard = config.bank_accounts[0];
+      const row = document.createElement('div');
+      row.className = 'chip-scroll';
+      config.bank_accounts.forEach(b => {
+        const chip = document.createElement('button');
+        chip.className = 'chip' + (b === curCard ? ' active' : '');
+        chip.innerText = b;
+        chip.onclick = () => { curCard = b; renderSubMethods(); };
+        row.appendChild(chip);
+      });
+      panel.appendChild(row);
+    }
+  }
+
+  function submitRecord() {
+    const amountVal = parseFloat(document.getElementById('tx-amount').value);
+    if (!amountVal || amountVal <= 0) {
+      alert('請輸入有效金額');
+      return;
+    }
+    const dateVal = document.getElementById('tx-date').value;
+    const noteVal = document.getElementById('tx-note').value.trim() || '日常支出';
+
+    let payDetail = '現金';
+    if (curMethod === 'mobile') {
+      payDetail = `${curPlatform}${curCard ? ' (' + curCard + ')' : ''}`;
+    } else if (curMethod === 'card') {
+      payDetail = `信用卡 (${curCard})`;
+    } else if (curMethod === 'bank') {
+      payDetail = `帳戶 (${curCard})`;
+    }
+
+    records.unshift({
+      id: Date.now(),
+      date: dateVal,
+      amount: amountVal,
+      note: noteVal,
+      method: payDetail
+    });
+
+    localStorage.setItem('expense_records', JSON.stringify(records));
+    document.getElementById('tx-amount').value = '';
+    document.getElementById('tx-note').value = '';
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('history-list');
+    list.innerHTML = '';
+    let total = 0;
+    records.forEach(r => {
+      total += r.amount;
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `
+        <div class="item-left">
+          <div class="item-title">${escapeHtml(r.note)}</div>
+          <div class="item-sub">${r.date} · ${r.method}</div>
+        </div>
+        <div class="item-right">
+          <div class="item-amount">$${r.amount.toLocaleString()}</div>
+          <button class="item-del" onclick="deleteRecord(${r.id})">×</button>
+        </div>
+      `;
+
+      // 觸控左滑刪除手勢監聽
+      let startX = 0, startY = 0, isSwiping = false;
+      item.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        item.style.transition = 'none';
+      }, { passive: true });
+
+      item.addEventListener('touchmove', (e) => {
+        const diffX = e.touches[0].clientX - startX;
+        const diffY = e.touches[0].clientY - startY;
+        if (diffX < 0 && Math.abs(diffX) > Math.abs(diffY)) {
+          isSwiping = true;
+          item.style.transform = `translateX(${diffX}px)`;
+          item.style.opacity = Math.max(0.1, 1 - Math.abs(diffX) / 220);
+        }
+      }, { passive: true });
+
+      item.addEventListener('touchend', (e) => {
+        item.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+        const diffX = e.changedTouches[0].clientX - startX;
+        if (isSwiping && diffX < -80) {
+          item.style.transform = 'translateX(-110%)';
+          item.style.opacity = '0';
+          setTimeout(() => { deleteRecord(r.id); }, 200);
+        } else {
+          item.style.transform = 'translateX(0)';
+          item.style.opacity = '1';
+        }
+        isSwiping = false;
+      });
+
+      list.appendChild(item);
+    });
+    document.getElementById('history-total').innerText = `合計: $${total.toLocaleString()}`;
+  }
+
+  function deleteRecord(id) {
+    records = records.filter(r => r.id !== id);
+    localStorage.setItem('expense_records', JSON.stringify(records));
+    renderHistory();
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+  }
+
+  // --- 精簡文檔讀寫邏輯（純文字格式） ---
+  function configToText(cfg) {
+    let lines = ['[行動支付]'];
+    cfg.mobile_platforms.forEach(p => {
+      lines.push(`${p.name}: ${p.cards.join(', ')}`);
+    });
+    lines.push('\n[常用信用卡]');
+    lines.push(cfg.direct_cards.join(', '));
+    lines.push('\n[常用帳戶]');
+    lines.push(cfg.bank_accounts.join(', '));
+    return lines.join('\n');
+  }
+
+  function textToConfig(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    let section = '';
+    const newCfg = { mobile_platforms: [], direct_cards: [], bank_accounts: [] };
+
+    lines.forEach(line => {
+      if (line.includes('[行動支付]')) { section = 'mobile'; return; }
+      if (line.includes('[常用信用卡]')) { section = 'card'; return; }
+      if (line.includes('[常用帳戶]')) { section = 'bank'; return; }
+
+      if (section === 'mobile') {
+        const parts = line.split(/[:：]/);
+        if (parts.length >= 2) {
+          const name = parts[0].trim();
+          const cards = parts[1].split(/[,，]/).map(c => c.trim()).filter(c => c.length > 0);
+          newCfg.mobile_platforms.push({ name, cards });
+        }
+      } else if (section === 'card') {
+        const cards = line.split(/[,，]/).map(c => c.trim()).filter(c => c.length > 0);
+        newCfg.direct_cards.push(...cards);
+      } else if (section === 'bank') {
+        const banks = line.split(/[,，]/).map(b => b.trim()).filter(b => b.length > 0);
+        newCfg.bank_accounts.push(...banks);
+      }
+    });
+
+    return newCfg;
+  }
+
+  function openConfigModal() {
+    document.getElementById('config-text').value = configToText(config);
+    document.getElementById('config-modal').style.display = 'flex';
+  }
+
+  function closeConfigModal() {
+    document.getElementById('config-modal').style.display = 'none';
+  }
+
+  function saveConfigText() {
+    const rawText = document.getElementById('config-text').value;
+    const newConfig = textToConfig(rawText);
+    if (!newConfig.mobile_platforms.length && !newConfig.direct_cards.length && !newConfig.bank_accounts.length) {
+      alert('請至少填寫一項卡片或支付平台！');
+      return;
+    }
+    config = newConfig;
+    localStorage.setItem('expense_config', JSON.stringify(config));
+    closeConfigModal();
+    curPlatform = '';
+    curCard = '';
+    renderSubMethods();
+    alert('卡池與帳戶設定儲存成功！');
+  }
+
+  function resetDefaultConfig() {
+    if (confirm('確定要將卡片設定還原回預設值嗎？')) {
+      config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      document.getElementById('config-text').value = configToText(config);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
