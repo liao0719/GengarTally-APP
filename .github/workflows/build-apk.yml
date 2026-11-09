@@ -49,10 +49,10 @@ jobs:
           find android/app/src/main/res/ -name "ic_launcher*.png" -exec cp gengar.png {} \; 2>/dev/null || true
           find android/app/src/main/res/ -name "ic_launcher*.webp" -exec cp gengar.png {} \; 2>/dev/null || true
           
-          # 2. 將預設白色背景替換為 App 暗黑底色
+          # 2. 將預設白色背景替換為 App 暗黑底色 (#09090b)
           sed -i 's/#FFFFFF/#09090b/g' android/app/src/main/res/values/ic_launcher_background.xml 2>/dev/null || true
           
-          # 3. 將下載來源改為 JetBrains 獨立鏡像源，完全繞過 GitHub 504 故障節點
+          # 3. 將下載來源改為 JetBrains 鏡像源，並切換至 -bin.zip 避免 504 逾時
           sed -i 's|services.gradle.org/distributions|cache-redirector.jetbrains.com/services.gradle.org/distributions|g' android/gradle/wrapper/gradle-wrapper.properties
           sed -i 's/-all.zip/-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
 
@@ -61,9 +61,11 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+          # 將產出的 apk 重新命名為 GengarTally.apk
+          cp app/build/outputs/apk/debug/app-debug.apk ../GengarTally.apk
 
       - name: 上傳編譯成品 (APK Artifact)
         uses: actions/upload-artifact@v4
         with:
           name: GengarTally-Offline-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: GengarTally.apk
