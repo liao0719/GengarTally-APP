@@ -77,7 +77,6 @@
     }
     .select-input:focus { border-color: #818cf8; }
 
-    /* 表單送出與取消編輯按鈕 */
     .submit-wrap { display: flex; gap: 8px; margin-top: 4px; }
     .btn-submit { flex: 1; background: #10b981; border: none; color: #fff; padding: 14px; border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: background 0.2s ease; }
     .btn-submit.edit-mode { background: #6366f1; }
@@ -92,27 +91,38 @@
     .swipe-tip { font-size: 0.72rem; color: #71717a; margin-top: -4px; }
     .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; overflow-x: hidden; }
     
-    /* 歷史單項紀錄（無叉叉按鈕，點擊彈出操作選單） */
+    /* 歷史單項紀錄樣式強化 */
     .history-item { 
       display: flex; justify-content: space-between; align-items: center; 
-      background: #09090b; padding: 10px 14px; border-radius: 8px; border: 1px solid #27272a;
+      background: #09090b; padding: 11px 14px; border-radius: 8px; border: 1px solid #27272a;
       position: relative; touch-action: pan-y; user-select: none; cursor: pointer;
       transition: transform 0.2s ease, opacity 0.2s ease;
-      border-left: 4px solid #71717a;
+      border-left: 5px solid #71717a;
     }
     .history-item:active { background: #141417; }
 
-    .item-left { display: flex; flex-direction: column; gap: 2px; pointer-events: none; }
-    .item-title-row { display: flex; align-items: center; gap: 6px; }
-    .item-title { font-size: 0.95rem; font-weight: 600; color: #f4f4f5; }
-    .badge { font-size: 0.68rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+    .item-left { display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+    .item-title-row { display: flex; align-items: center; gap: 8px; }
+    .item-title { font-size: 1rem; font-weight: 600; color: #f4f4f5; }
+    
+    /* 類別標籤字體加大且高對比 */
+    .badge { 
+      font-size: 0.82rem; font-weight: 700; padding: 2px 8px; 
+      border-radius: 6px; border: 1px solid; letter-spacing: 0.5px;
+    }
 
-    .item-sub { font-size: 0.75rem; color: #a1a1aa; }
-    .item-note { font-size: 0.72rem; color: #71717a; }
+    .item-sub { font-size: 0.8rem; color: #a1a1aa; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .sub-divider { color: #3f3f46; }
+    /* 卡片與支付方式高亮標籤 */
+    .method-highlight { 
+      font-size: 0.82rem; font-weight: 600; padding: 1px 7px; 
+      border-radius: 5px; background: rgba(255, 255, 255, 0.06); 
+    }
+    .item-note { font-size: 0.75rem; color: #71717a; }
     .item-right { display: flex; align-items: center; pointer-events: none; }
-    .item-amount { font-size: 1.05rem; font-weight: 700; color: #f87171; }
+    .item-amount { font-size: 1.15rem; font-weight: 700; color: #f87171; }
 
-    /* 操作彈窗 (編輯 / 複製) */
+    /* 操作選單彈窗 */
     .action-sheet {
       background: #18181b; border: 1px solid #3f3f46; border-radius: 16px;
       width: 100%; max-width: 440px; padding: 16px; display: flex;
@@ -158,8 +168,11 @@
     .color-picker-item input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
     .color-picker-item input[type="color"]::-webkit-color-swatch { border: 1px solid #3f3f46; border-radius: 50%; }
 
+    /* 匯出匯入列 */
+    .config-tools-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+
     .modal textarea { 
-      width: 100%; height: 240px; background: #09090b; border: 1px solid #3f3f46; 
+      width: 100%; height: 230px; background: #09090b; border: 1px solid #3f3f46; 
       color: #38bdf8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 0.9rem; padding: 12px; 
       border-radius: 8px; outline: none; resize: none; line-height: 1.6;
     }
@@ -275,6 +288,17 @@
       </label>
     </div>
 
+    <!-- 匯出 / 匯入設定文檔操作列（強化支援 Android 系統分享與一鍵複製） -->
+    <div class="config-tools-row">
+      <span style="font-size:0.8rem; color:#a1a1aa;">文檔備份：</span>
+      <div style="display:flex; gap:6px;">
+        <button type="button" class="btn-text" style="padding:4px 10px; font-size:0.75rem;" onclick="copyConfigToClipboard()">📋 複製</button>
+        <button type="button" class="btn-text" style="padding:4px 10px; font-size:0.75rem;" onclick="exportConfigFile()">📤 匯出/分享</button>
+        <button type="button" class="btn-text" style="padding:4px 10px; font-size:0.75rem;" onclick="triggerImportConfig()">📥 匯入</button>
+        <input type="file" id="config-file-input" accept=".txt,text/plain" style="display:none;" onchange="handleImportConfigFile(event)">
+      </div>
+    </div>
+
     <textarea id="config-text" placeholder="讀取中..."></textarea>
     
     <div class="modal-btns">
@@ -296,7 +320,6 @@
 </div>
 
 <script>
-  // 套用指定的自訂類別顏色與完整配置清單
   const DEFAULT_CONFIG = {
     colors: {
       mobile: "#ff0000",
@@ -350,7 +373,7 @@
     ]
   };
 
-  const CURRENT_CONFIG_VER = "20261109_custom_v2";
+  const CURRENT_CONFIG_VER = "20261109_custom_v3";
 
   let config;
   try {
@@ -731,6 +754,7 @@
     return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
   }
 
+  // --- 歷史紀錄渲染（字體加大 + 卡片高亮更明顯） ---
   function renderHistory() {
     const list = document.getElementById('history-list');
     if (!list) return;
@@ -743,7 +767,7 @@
       total += r.amount;
       const type = r.methodType || 'mobile';
       const itemColor = colors[type] || '#71717a';
-      const badgeBg = hexToRgba(itemColor, 0.16);
+      const badgeBg = hexToRgba(itemColor, 0.18);
       
       const item = document.createElement('div');
       item.className = 'history-item';
@@ -759,10 +783,14 @@
       item.innerHTML = `
         <div class="item-left">
           <div class="item-title-row">
-            <span class="badge" style="background:${badgeBg}; color:${itemColor};">${typeText}</span>
+            <span class="badge" style="background:${badgeBg}; color:${itemColor}; border-color:${itemColor}99;">${typeText}</span>
             <div class="item-title">${escapeHtml(r.item)}</div>
           </div>
-          <div class="item-sub">${r.date} · ${escapeHtml(r.methodDetail)}</div>
+          <div class="item-sub">
+            <span>${r.date}</span>
+            <span class="sub-divider">·</span>
+            <span class="method-highlight" style="color:${itemColor}; border:1px solid ${itemColor}44;">${escapeHtml(r.methodDetail)}</span>
+          </div>
           ${noteHtml}
         </div>
         <div class="item-right">
@@ -1190,6 +1218,122 @@
       renderSubMethods();
       renderHistory();
     }
+  }
+
+  // --- 設定檔一鍵複製與系統分享功能 ---
+  async function copyConfigToClipboard() {
+    const text = document.getElementById('config-text').value || configToText(config);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.getElementById('config-text');
+        textarea.select();
+        document.execCommand('copy');
+      }
+      alert('設定文檔已成功複製到剪貼簿！');
+    } catch (e) {
+      alert('複製失敗，請手動選取文字複製。');
+    }
+  }
+
+  async function exportConfigFile() {
+    const text = document.getElementById('config-text').value || configToText(config);
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const filename = `GengarTally_Config_${dateStr}.txt`;
+
+    // 優先調用 Android 系統原生分享 (可存檔至 Google 雲端、本機檔案、Keep 或 LINE)
+    if (navigator.share) {
+      try {
+        const file = new File([text], filename, { type: 'text/plain' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'GengarTally 設定備份',
+            text: 'GengarTally 設定文檔備份'
+          });
+          return;
+        } else {
+          await navigator.share({
+            title: 'GengarTally 設定備份',
+            text: text
+          });
+          return;
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return; // 使用者按取消
+      }
+    }
+
+    // 瀏覽器 Blob 下載保底
+    try {
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {}
+
+    // 同步複製至剪貼簿作為雙重保障
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      }
+      alert('已嘗試下載檔案，並同步將文檔複製至剪貼簿！');
+    } catch (e) {
+      alert('匯出已執行。');
+    }
+  }
+
+  function triggerImportConfig() {
+    const input = document.getElementById('config-file-input');
+    if (input) {
+      input.value = '';
+      input.click();
+    }
+  }
+
+  function handleImportConfigFile(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const textContent = e.target.result;
+        const parsed = textToConfig(textContent);
+        
+        if (!parsed.mobile_platforms.length && !parsed.direct_cards.length && !parsed.bank_accounts.length) {
+          alert('匯入失敗：檔案格式不正確或內容為空！');
+          return;
+        }
+
+        config = parsed;
+        localStorage.setItem('expense_config', JSON.stringify(config));
+        document.getElementById('config-text').value = configToText(config);
+
+        const c = config.colors || DEFAULT_CONFIG.colors;
+        document.getElementById('picker-mobile').value = c.mobile || '#ff0000';
+        document.getElementById('picker-card').value = c.card || '#00ffff';
+        document.getElementById('picker-bank').value = c.bank || '#ffff00';
+        document.getElementById('picker-cash').value = c.cash || '#00ff00';
+
+        curPlatform = '';
+        curCard = '';
+        renderQuickItems();
+        renderSubMethods();
+        renderHistory();
+        alert('設定文檔匯入成功！');
+      } catch (err) {
+        alert('檔案讀取失敗，請確認檔案格式是否正確。');
+      }
+    };
+    reader.readAsText(file);
   }
 
   init();
