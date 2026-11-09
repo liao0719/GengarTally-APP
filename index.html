@@ -1296,4 +1296,207 @@
         newCfg.bank_accounts.push(line);
       }
     }
-    return newCfg
+    return newCfg;
+  }
+
+  function openConfigModal() {
+    const c = config.colors || DEFAULT_CONFIG.colors;
+    document.getElementById('picker-mobile').value = c.mobile || '#ff0000';
+    document.getElementById('picker-card').value = c.card || '#00ffff';
+    document.getElementById('picker-bank').value = c.bank || '#ffff00';
+    document.getElementById('picker-cash').value = c.cash || '#00ff00';
+
+    document.getElementById('config-text').value = configToText(config);
+    renderTrashList();
+    
+    history.pushState({ modalOpen: true }, '');
+    document.getElementById('config-modal').style.display = 'flex';
+  }
+
+  function closeConfigModal() {
+    const modal = document.getElementById('config-modal');
+    if (modal && modal.style.display === 'flex') {
+      modal.style.display = 'none';
+      if (history.state && history.state.modalOpen) {
+        history.back();
+      }
+    }
+  }
+
+  function syncPickerToText(type, hex) {
+    const textEl = document.getElementById('config-text');
+    let currentCfg = textToConfig(textEl.value);
+    currentCfg.colors[type] = hex;
+    textEl.value = configToText(currentCfg);
+  }
+
+  function saveConfigText() {
+    const rawText = document.getElementById('config-text').value;
+    const newConfig = textToConfig(rawText);
+    if (!newConfig.mobile_platforms.length && !newConfig.direct_cards.length && !newConfig.bank_accounts.length) {
+      alert('請至少填寫一項卡片或支付平台！');
+      return;
+    }
+    config = newConfig;
+    localStorage.setItem('expense_config', JSON.stringify(config));
+    closeConfigModal();
+    curPlatform = '';
+    curCard = '';
+    renderQuickItems();
+    renderSubMethods();
+    renderHistory();
+    alert('設定已儲存更新！');
+  }
+
+  function resetDefaultConfig() {
+    if (confirm('確定要將帳戶與顏色設定還原回預設值嗎？')) {
+      config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      localStorage.setItem('expense_config', JSON.stringify(config));
+      document.getElementById('config-text').value = configToText(config);
+      
+      document.getElementById('picker-mobile').value = DEFAULT_CONFIG.colors.mobile;
+      document.getElementById('picker-card').value = DEFAULT_CONFIG.colors.card;
+      document.getElementById('picker-bank').value = DEFAULT_CONFIG.colors.bank;
+      document.getElementById('picker-cash').value = DEFAULT_CONFIG.colors.cash;
+      
+      renderQuickItems();
+      renderSubMethods();
+      renderHistory();
+    }
+  }
+
+  // --- 原生下載、原生分享與複製備份 ---
+  function downloadConfigFile() {
+    const text = document.getElementById('config-text').value || configToText(config);
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const filename = `GengarTally_Config_${dateStr}.txt`;
+
+    // 優先調用 Android 原生 MediaStore 下載器，直接存入「下載 (Download)」資料夾
+    if (window.AndroidBridge && typeof window.AndroidBridge.downloadTextFile === 'function') {
+      window.AndroidBridge.downloadTextFile(filename, text);
+      return;
+    }
+
+    // 瀏覽器保底下載
+    try {
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      alert('下載失敗，建議改用「📋 複製」保存。');
+    }
+  }
+
+  function shareConfigFile() {
+    const text = document.getElementById('config-text').value || configToText(config);
+
+    // 優先調用 Android 原生分享 Intent (支援 LINE, Keep, 雲端硬碟)
+    if (window.AndroidBridge && typeof window.AndroidBridge.shareText === 'function') {
+      window.AndroidBridge.shareText('GengarTally 設定備份', text);
+      return;
+    }
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'GengarTally 設定備份',
+        text: text
+      }).catch(() => {});
+    } else {
+      copyConfigToClipboard();
+    }
+  }
+
+  function copyConfigToClipboard() {
+    const text = document.getElementById('config-text').value || configToText(config);
+    
+    const dummy = document.createElement('textarea');
+    dummy.value = text;
+    dummy.setAttribute('readonly', '');
+    dummy.style.position = 'fixed';
+    dummy.style.top = '0';
+    dummy.style.left = '-9999px';
+    dummy.style.opacity = '0';
+    document.body.appendChild(dummy);
+
+    dummy.focus();
+    dummy.select();
+    dummy.setSelectionRange(0, dummy.value.length);
+
+    let copySucceeded = false;
+    try {
+      copySucceeded = document.execCommand('copy');
+    } catch (e) {
+      copySucceeded = false;
+    }
+    document.body.removeChild(dummy);
+
+    if (copySucceeded) {
+      alert('✓ 設定文檔已成功複製到剪貼簿！');
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('✓ 設定文檔已複製到剪貼簿！');
+      }).catch(() => {
+        alert('請手動長按下方文字框進行選取複製。');
+      });
+    } else {
+      alert('請手動長按下方文字框進行選取複製。');
+    }
+  }
+
+  function triggerImportConfig() {
+    const input = document.getElementById('config-file-input');
+    if (input) {
+      input.value = '';
+      input.click();
+    }
+  }
+
+  function handleImportConfigFile(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const textContent = e.target.result;
+        const parsed = textToConfig(textContent);
+        
+        if (!parsed.mobile_platforms.length && !parsed.direct_cards.length && !parsed.bank_accounts.length) {
+          alert('匯入失敗：檔案格式不正確或內容為空！');
+          return;
+        }
+
+        config = parsed;
+        localStorage.setItem('expense_config', JSON.stringify(config));
+        document.getElementById('config-text').value = configToText(config);
+
+        const c = config.colors || DEFAULT_CONFIG.colors;
+        document.getElementById('picker-mobile').value = c.mobile || '#ff0000';
+        document.getElementById('picker-card').value = c.card || '#00ffff';
+        document.getElementById('picker-bank').value = c.bank || '#ffff00';
+        document.getElementById('picker-cash').value = c.cash || '#00ff00';
+
+        curPlatform = '';
+        curCard = '';
+        renderQuickItems();
+        renderSubMethods();
+        renderHistory();
+        alert('設定文檔匯入成功！');
+      } catch (err) {
+        alert('檔案讀取失敗，請確認檔案格式是否正確。');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  init();
+</script>
+</body>
+</html>
