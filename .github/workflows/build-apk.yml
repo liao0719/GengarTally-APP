@@ -5,6 +5,10 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+# 授權 Actions 擁有建立 Release 與 Tag 的寫入權限
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -64,8 +68,19 @@ jobs:
           # 將產出的 apk 重新命名為 GengarTally.apk
           cp app/build/outputs/apk/debug/app-debug.apk ../GengarTally.apk
 
-      - name: 上傳編譯成品 (APK Artifact)
-        uses: actions/upload-artifact@v4
+      # 自動建立 GitHub Release 並上傳 APK
+      - name: 自動發布至 GitHub Releases
+        uses: softprops/action-gh-release@v2
         with:
-          name: GengarTally-Offline-APK
-          path: GengarTally.apk
+          tag_name: v1.0.${{ github.run_number }}
+          name: GengarTally v1.0.${{ github.run_number }}
+          body: |
+            ### GengarTally 自動編譯版本
+            * 觸發分支：`${{ github.ref_name }}`
+            * 提交訊息：${{ github.event.head_commit.message }}
+            * 請直接下載下方 Assets 中的 `GengarTally.apk` 安裝使用。
+          draft: false
+          prerelease: false
+          files: GengarTally.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
