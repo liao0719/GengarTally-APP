@@ -19,13 +19,35 @@
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #09090b; color: #f4f4f5; display: flex; justify-content: center; min-height: 100vh; padding: 12px; }
-    .app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; padding-bottom: 24px; }
+    body { background-color: #09090b; color: #f4f4f5; display: flex; justify-content: center; min-height: 100vh; padding: 10px 12px 24px; overflow-x: hidden; }
+    .app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 10px; }
     
-    header { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 4px 2px; }
     h1 { font-size: 1.25rem; font-weight: 700; color: #fff; }
     .btn-text { background: #27272a; border: 1px solid #3f3f46; color: #a1a1aa; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; }
-    
+
+    /* 頂部導航分頁 (Tabs) */
+    .nav-tabs {
+      display: flex; background: #18181b; border: 1px solid #27272a; 
+      border-radius: 12px; padding: 3px; gap: 4px;
+    }
+    .tab-btn {
+      flex: 1; background: transparent; border: none; color: #71717a; 
+      padding: 8px 0; border-radius: 9px; font-size: 0.88rem; font-weight: 700; 
+      cursor: pointer; transition: all 0.2s ease;
+    }
+    .tab-btn.active { background: #27272a; color: #fff; border: 1px solid #3f3f46; }
+
+    /* 雙分頁左右滑動輪播軌道 */
+    .slider-viewport { width: 100%; overflow: hidden; position: relative; border-radius: 14px; }
+    .slider-track {
+      display: flex; width: 200%; 
+      transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1);
+      touch-action: pan-y;
+    }
+    .slider-page { width: 50%; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+
+    /* 表單與卡片容器 */
     .card { background: #18181b; border: 1px solid #27272a; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
     
     .date-row { display: flex; gap: 8px; align-items: center; }
@@ -83,46 +105,65 @@
     .btn-submit:active { opacity: 0.85; }
     .btn-cancel-edit { background: #27272a; border: 1px solid #3f3f46; color: #d4d4d8; padding: 14px 16px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
 
-    .history-card { background: #18181b; border: 1px solid #27272a; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-    .history-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: 600; color: #a1a1aa; }
+    /* 第二頁：明細專屬樣式 */
+    .history-card { background: #18181b; border: 1px solid #27272a; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 520px; }
+    .history-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.92rem; font-weight: 600; color: #a1a1aa; }
     .history-actions { display: flex; align-items: center; gap: 8px; }
-    .btn-clear { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; }
+    .btn-clear { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; }
     .btn-clear:hover { background: rgba(239, 68, 68, 0.2); }
     .swipe-tip { font-size: 0.72rem; color: #71717a; margin-top: -4px; }
-    .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; overflow-x: hidden; }
+    .history-list { display: flex; flex-direction: column; gap: 9px; max-height: calc(100vh - 200px); overflow-y: auto; overflow-x: hidden; }
     
-    /* 歷史單項紀錄樣式強化 */
     .history-item { 
-      display: flex; justify-content: space-between; align-items: center; 
-      background: #09090b; padding: 11px 14px; border-radius: 8px; border: 1px solid #27272a;
+      display: flex; flex-direction: column; gap: 6px;
+      background: #09090b; padding: 11px 13px; border-radius: 10px; border: 1px solid #27272a;
       position: relative; touch-action: pan-y; user-select: none; cursor: pointer;
       transition: transform 0.2s ease, opacity 0.2s ease;
       border-left: 5px solid #71717a;
     }
     .history-item:active { background: #141417; }
 
-    .item-left { display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
-    .item-title-row { display: flex; align-items: center; gap: 8px; }
-    .item-title { font-size: 1rem; font-weight: 600; color: #f4f4f5; }
-    
-    /* 類別標籤字體加大且高對比 */
+    .item-header-row { display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+    .item-title-wrap { display: flex; align-items: center; gap: 8px; }
     .badge { 
-      font-size: 0.82rem; font-weight: 700; padding: 2px 8px; 
-      border-radius: 6px; border: 1px solid; letter-spacing: 0.5px;
+      font-size: 0.8rem; font-weight: 700; padding: 2px 7px; 
+      border-radius: 5px; border: 1px solid; letter-spacing: 0.5px;
     }
+    .item-title { font-size: 1.02rem; font-weight: 700; color: #f4f4f5; }
+    .item-date { font-size: 0.8rem; color: #a1a1aa; font-weight: 500; }
 
-    .item-sub { font-size: 0.8rem; color: #a1a1aa; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .sub-divider { color: #3f3f46; }
-    /* 卡片與支付方式高亮標籤 */
+    .item-body-row { display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
     .method-highlight { 
-      font-size: 0.82rem; font-weight: 600; padding: 1px 7px; 
-      border-radius: 5px; background: rgba(255, 255, 255, 0.06); 
+      font-size: 0.9rem; font-weight: 600; padding: 2px 8px; 
+      border-radius: 6px; background: rgba(255, 255, 255, 0.05); 
     }
-    .item-note { font-size: 0.75rem; color: #71717a; }
-    .item-right { display: flex; align-items: center; pointer-events: none; }
-    .item-amount { font-size: 1.15rem; font-weight: 700; color: #f87171; }
+    .item-amount { font-size: 1.25rem; font-weight: 800; color: #f87171; }
 
-    /* 操作選單彈窗 */
+    .item-note-row { 
+      font-size: 0.85rem; color: #e4e4e7; background: #18181b; 
+      padding: 5px 9px; border-radius: 6px; border: 1px dashed #3f3f46; 
+      line-height: 1.35; pointer-events: none; word-break: break-all;
+    }
+
+    /* 頂部微膠囊 Toast (新增成功即時提示) */
+    .top-toast {
+      position: fixed; top: 16px; left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      background: #18181b; border: 1.5px solid #10b981; color: #f4f4f5;
+      padding: 8px 18px; border-radius: 30px; display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.8), 0 0 12px rgba(16, 185, 129, 0.3);
+      font-size: 0.85rem; font-weight: 600; z-index: 9999;
+      opacity: 0; pointer-events: none;
+      transition: transform 0.28s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.25s ease;
+    }
+    .top-toast.show {
+      transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto;
+    }
+    .top-toast-icon {
+      color: #10b981; font-weight: 800; font-size: 1rem;
+    }
+
+    /* 操作選單彈窗 (編輯 / 複製) */
     .action-sheet {
       background: #18181b; border: 1px solid #3f3f46; border-radius: 16px;
       width: 100%; max-width: 440px; padding: 16px; display: flex;
@@ -168,11 +209,10 @@
     .color-picker-item input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
     .color-picker-item input[type="color"]::-webkit-color-swatch { border: 1px solid #3f3f46; border-radius: 50%; }
 
-    /* 匯出匯入列 */
     .config-tools-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
 
     .modal textarea { 
-      width: 100%; height: 230px; background: #09090b; border: 1px solid #3f3f46; 
+      width: 100%; height: 220px; background: #09090b; border: 1px solid #3f3f46; 
       color: #38bdf8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 0.9rem; padding: 12px; 
       border-radius: 8px; outline: none; resize: none; line-height: 1.6;
     }
@@ -197,54 +237,78 @@
     <button type="button" class="btn-text" onclick="openConfigModal()">設定帳戶</button>
   </header>
 
-  <div class="card">
-    <div class="date-row">
-      <input type="date" id="tx-date" class="date-input">
-      <button type="button" class="btn-today" onclick="setToday()">今天</button>
-    </div>
-
-    <!-- 支出項目與快捷標籤 -->
-    <div class="item-group">
-      <input type="text" id="tx-item" class="text-input" placeholder="支出項目">
-      <div id="quick-items-scroll" class="quick-scroll"></div>
-    </div>
-
-    <div class="amount-wrap">
-      <span class="currency">$</span>
-      <input type="number" id="tx-amount" class="amount-input" placeholder="0" inputmode="decimal">
-    </div>
-
-    <div>
-      <div class="section-label">付款方式</div>
-      <div class="btn-grid">
-        <button type="button" class="btn-opt active" onclick="setMainMethod('mobile')">行動支付</button>
-        <button type="button" class="btn-opt" onclick="setMainMethod('card')">信用卡</button>
-        <button type="button" class="btn-opt" onclick="setMainMethod('bank')">銀行帳戶</button>
-        <button type="button" class="btn-opt" onclick="setMainMethod('cash')">現金</button>
-      </div>
-    </div>
-
-    <div id="sub-method-panel" class="sub-box"></div>
-
-    <input type="text" id="tx-note" class="text-input" placeholder="備註">
-
-    <div class="submit-wrap">
-      <button type="button" id="btn-submit" class="btn-submit" onclick="submitRecord()">新增支出</button>
-      <button type="button" id="btn-cancel-edit" class="btn-cancel-edit" style="display:none;" onclick="cancelEdit()">取消修改</button>
-    </div>
+  <!-- 頂部滑動切換標籤 -->
+  <div class="nav-tabs">
+    <button type="button" id="tab-btn-0" class="tab-btn active" onclick="switchPage(0)">記帳</button>
+    <button type="button" id="tab-btn-1" class="tab-btn" onclick="switchPage(1)">支出明細 (<span id="tab-count">0</span>)</button>
   </div>
 
-  <div class="history-card">
-    <div class="history-header">
-      <span>近期支出紀錄</span>
-      <div class="history-actions">
-        <span id="history-total">合計: $0</span>
-        <button type="button" class="btn-clear" onclick="clearAllRecords()">清空紀錄</button>
+  <!-- 雙分頁左右輪播容器 -->
+  <div class="slider-viewport" id="slider-viewport">
+    <div class="slider-track" id="slider-track">
+      
+      <!-- 第 1 頁：記帳輸入台 -->
+      <div class="slider-page" id="page-entry">
+        <div class="card">
+          <div class="date-row">
+            <input type="date" id="tx-date" class="date-input">
+            <button type="button" class="btn-today" onclick="setToday()">今天</button>
+          </div>
+
+          <div class="item-group">
+            <input type="text" id="tx-item" class="text-input" placeholder="支出項目">
+            <div id="quick-items-scroll" class="quick-scroll"></div>
+          </div>
+
+          <div class="amount-wrap">
+            <span class="currency">$</span>
+            <input type="number" id="tx-amount" class="amount-input" placeholder="0" inputmode="decimal">
+          </div>
+
+          <div>
+            <div class="section-label">付款方式</div>
+            <div class="btn-grid">
+              <button type="button" class="btn-opt active" onclick="setMainMethod('mobile')">行動支付</button>
+              <button type="button" class="btn-opt" onclick="setMainMethod('card')">信用卡</button>
+              <button type="button" class="btn-opt" onclick="setMainMethod('bank')">銀行帳戶</button>
+              <button type="button" class="btn-opt" onclick="setMainMethod('cash')">現金</button>
+            </div>
+          </div>
+
+          <div id="sub-method-panel" class="sub-box"></div>
+
+          <input type="text" id="tx-note" class="text-input" placeholder="備註">
+
+          <div class="submit-wrap">
+            <button type="button" id="btn-submit" class="btn-submit" onclick="submitRecord()">新增支出</button>
+            <button type="button" id="btn-cancel-edit" class="btn-cancel-edit" style="display:none;" onclick="cancelEdit()">取消修改</button>
+          </div>
+        </div>
       </div>
+
+      <!-- 第 2 頁：全螢幕支出明細清單 -->
+      <div class="slider-page" id="page-history">
+        <div class="history-card">
+          <div class="history-header">
+            <span>近期支出明細</span>
+            <div class="history-actions">
+              <span id="history-total">合計: $0</span>
+              <button type="button" class="btn-clear" onclick="clearAllRecords()">清空紀錄</button>
+            </div>
+          </div>
+          <div class="swipe-tip">點擊可「編輯/複製」，向左滑動直接刪除，向右滑切回記帳</div>
+          <div id="history-list" class="history-list"></div>
+        </div>
+      </div>
+
     </div>
-    <div class="swipe-tip">點擊可「編輯/複製」，向左滑動直接刪除</div>
-    <div id="history-list" class="history-list"></div>
   </div>
+</div>
+
+<!-- 頂部微膠囊 Toast 提示 -->
+<div id="top-toast" class="top-toast">
+  <span class="top-toast-icon">✓</span>
+  <span id="top-toast-msg">已記錄：711 $60</span>
 </div>
 
 <!-- 紀錄操作彈窗 (編輯 / 複製) -->
@@ -288,13 +352,14 @@
       </label>
     </div>
 
-    <!-- 匯出 / 匯入設定文檔操作列（強化支援 Android 系統分享與一鍵複製） -->
+    <!-- 備份工具列 -->
     <div class="config-tools-row">
       <span style="font-size:0.8rem; color:#a1a1aa;">文檔備份：</span>
-      <div style="display:flex; gap:6px;">
-        <button type="button" class="btn-text" style="padding:4px 10px; font-size:0.75rem;" onclick="copyConfigToClipboard()">📋 複製</button>
-        <button type="button" class="btn-text" style="padding:4px 10px; font-size:0.75rem;" onclick="exportConfigFile()">📤 匯出/分享</button>
-        <button type="button" class="btn-text" style="padding:4px 10px; font-size:0.75rem;" onclick="triggerImportConfig()">📥 匯入</button>
+      <div style="display:flex; gap:5px;">
+        <button type="button" class="btn-text" style="padding:4px 8px; font-size:0.75rem;" onclick="copyConfigToClipboard()">📋 複製</button>
+        <button type="button" class="btn-text" style="padding:4px 8px; font-size:0.75rem;" onclick="downloadConfigFile()">💾 下載</button>
+        <button type="button" class="btn-text" style="padding:4px 8px; font-size:0.75rem;" onclick="shareConfigFile()">📤 分享</button>
+        <button type="button" class="btn-text" style="padding:4px 8px; font-size:0.75rem;" onclick="triggerImportConfig()">📥 匯入</button>
         <input type="file" id="config-file-input" accept=".txt,text/plain" style="display:none;" onchange="handleImportConfigFile(event)">
       </div>
     </div>
@@ -373,7 +438,7 @@
     ]
   };
 
-  const CURRENT_CONFIG_VER = "20261109_custom_v3";
+  const CURRENT_CONFIG_VER = "20261109_custom_v5";
 
   let config;
   try {
@@ -423,16 +488,19 @@
   let curPlatform = '';
   let curCard = '';
 
+  let currentPage = 0; // 0: 記帳, 1: 支出明細
   let editingRecordId = null;
   let activeSelectedRecord = null;
   let lastDeletedRecord = null;
   let undoTimeout = null;
+  let topToastTimeout = null;
 
   function init() {
     setToday();
     renderQuickItems();
     renderSubMethods();
     renderHistory();
+    initPageSwipe();
 
     document.getElementById('config-modal').addEventListener('click', closeConfigModal);
     document.getElementById('action-modal').addEventListener('click', closeActionModal);
@@ -448,6 +516,63 @@
         cfgModal.style.display = 'none';
       }
     });
+  }
+
+  // --- 分頁滑動與切換控制 ---
+  function switchPage(pageIdx) {
+    currentPage = pageIdx;
+    const track = document.getElementById('slider-track');
+    if (track) {
+      track.style.transform = `translateX(-${pageIdx * 50}%)`;
+    }
+    document.getElementById('tab-btn-0').classList.toggle('active', pageIdx === 0);
+    document.getElementById('tab-btn-1').classList.toggle('active', pageIdx === 1);
+  }
+
+  function initPageSwipe() {
+    const viewport = document.getElementById('slider-viewport');
+    let startX = 0, startY = 0, isDragging = false;
+
+    viewport.addEventListener('touchstart', (e) => {
+      // 若觸碰點在歷史清單項目內，將手勢留給刪除處理
+      if (e.target.closest('.history-item') || e.target.closest('.quick-chip')) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      isDragging = true;
+    }, { passive: true });
+
+    viewport.addEventListener('touchend', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const diffX = endX - startX;
+      const diffY = endY - startY;
+
+      // 水平滑動幅度大於垂直幅度時觸發切頁
+      if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.3) {
+        if (diffX < 0 && currentPage === 0) {
+          switchPage(1); // 第1頁往左滑 -> 切換到第2頁
+        } else if (diffX > 0 && currentPage === 1) {
+          switchPage(0); // 第2頁往右滑 -> 切換到第1頁
+        }
+      }
+    });
+  }
+
+  // --- 頂部微膠囊 Toast 提示 ---
+  function showTopToast(text) {
+    const toast = document.getElementById('top-toast');
+    const msg = document.getElementById('top-toast-msg');
+    if (!toast || !msg) return;
+
+    msg.innerText = text;
+    toast.classList.add('show');
+
+    clearTimeout(topToastTimeout);
+    topToastTimeout = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2200);
   }
 
   function setToday() {
@@ -713,6 +838,7 @@
         };
       }
       cancelEdit();
+      showTopToast(`已更新：${itemVal} $${amountVal.toLocaleString()}`);
     } else {
       records.unshift({
         id: Date.now(),
@@ -723,6 +849,9 @@
         methodType: curMethod,
         methodDetail: payDetail
       });
+      // 成功新增提示與觸覺回饋
+      if (navigator.vibrate) navigator.vibrate(35);
+      showTopToast(`已記錄：${itemVal} $${amountVal.toLocaleString()}`);
     }
 
     records.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -754,9 +883,10 @@
     return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
   }
 
-  // --- 歷史紀錄渲染（字體加大 + 卡片高亮更明顯） ---
   function renderHistory() {
     const list = document.getElementById('history-list');
+    const tabCount = document.getElementById('tab-count');
+    if (tabCount) tabCount.innerText = records.length;
     if (!list) return;
     list.innerHTML = '';
     let total = 0;
@@ -778,24 +908,23 @@
       else if (type === 'bank') typeText = '帳戶';
       else if (type === 'cash') typeText = '現金';
 
-      const noteHtml = r.note ? `<div class="item-note">備註：${escapeHtml(r.note)}</div>` : '';
+      const noteHtml = r.note ? `<div class="item-note-row">💬 ${escapeHtml(r.note)}</div>` : '';
 
       item.innerHTML = `
-        <div class="item-left">
-          <div class="item-title-row">
-            <span class="badge" style="background:${badgeBg}; color:${itemColor}; border-color:${itemColor}99;">${typeText}</span>
-            <div class="item-title">${escapeHtml(r.item)}</div>
+        <div class="item-header-row">
+          <div class="item-title-wrap">
+            <span class="badge" style="background:${badgeBg}; color:${itemColor}; border-color:${itemColor}88;">${typeText}</span>
+            <span class="item-title">${escapeHtml(r.item)}</span>
           </div>
-          <div class="item-sub">
-            <span>${r.date}</span>
-            <span class="sub-divider">·</span>
-            <span class="method-highlight" style="color:${itemColor}; border:1px solid ${itemColor}44;">${escapeHtml(r.methodDetail)}</span>
-          </div>
-          ${noteHtml}
+          <span class="item-date">${r.date}</span>
         </div>
-        <div class="item-right">
+        <div class="item-body-row">
+          <div class="method-highlight" style="color:${itemColor}; border:1px solid ${itemColor}44;">
+            ${escapeHtml(r.methodDetail)}
+          </div>
           <div class="item-amount">$${r.amount.toLocaleString()}</div>
         </div>
+        ${noteHtml}
       `;
 
       let startX = 0, startY = 0, isDragging = false, currentDiffX = 0, hasMoved = false;
@@ -814,10 +943,9 @@
         const diffX = clientX - startX;
         const diffY = clientY - startY;
 
-        if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
-          hasMoved = true;
-        }
+        if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) hasMoved = true;
 
+        // 向左滑動為刪除手勢
         if (diffX < 0 && Math.abs(diffX) > Math.abs(diffY)) {
           currentDiffX = diffX;
           item.style.transform = `translateX(${diffX}px)`;
@@ -825,9 +953,17 @@
         }
       };
 
-      const onEnd = () => {
+      const onEnd = (clientX, clientY) => {
         if (!isDragging) return;
         isDragging = false;
+        const diffX = clientX !== undefined ? (clientX - startX) : currentDiffX;
+        
+        // 若向右大幅滑動，切回第 1 頁記帳
+        if (diffX > 75 && Math.abs(diffX) > Math.abs(clientY - startY)) {
+          switchPage(0);
+          return;
+        }
+
         item.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
         if (currentDiffX < -80) {
           item.style.transform = 'translateX(-110%)';
@@ -841,13 +977,13 @@
 
       item.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
       item.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-      item.addEventListener('touchend', onEnd);
+      item.addEventListener('touchend', (e) => onEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY));
 
       item.addEventListener('mousedown', (e) => {
         onStart(e.clientX, e.clientY);
         const onMouseMove = (ev) => onMove(ev.clientX, ev.clientY);
-        const onMouseUp = () => {
-          onEnd();
+        const onMouseUp = (ev) => {
+          onEnd(ev.clientX, ev.clientY);
           window.removeEventListener('mousemove', onMouseMove);
           window.removeEventListener('mouseup', onMouseUp);
         };
@@ -892,12 +1028,14 @@
     if (!activeSelectedRecord) return;
     loadRecordIntoForm(activeSelectedRecord, true);
     closeActionModal();
+    switchPage(0); // 編輯模式自動切回第 1 頁
   }
 
   function triggerCopyRecord() {
     if (!activeSelectedRecord) return;
     loadRecordIntoForm(activeSelectedRecord, false);
     closeActionModal();
+    switchPage(0); // 複製模式自動切回第 1 頁
   }
 
   function loadRecordIntoForm(r, isEdit) {
@@ -939,7 +1077,6 @@
       renderSubMethods();
     }
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     amountInput.focus();
   }
 
@@ -1220,7 +1357,6 @@
     }
   }
 
-  // --- 設定檔一鍵複製與系統分享功能 ---
   async function copyConfigToClipboard() {
     const text = document.getElementById('config-text').value || configToText(config);
     try {
@@ -1231,62 +1367,44 @@
         textarea.select();
         document.execCommand('copy');
       }
-      alert('設定文檔已成功複製到剪貼簿！');
+      alert('設定文檔已成功複製到剪貼簿！可直接貼至記事本。');
     } catch (e) {
       alert('複製失敗，請手動選取文字複製。');
     }
   }
 
-  async function exportConfigFile() {
+  function downloadConfigFile() {
     const text = document.getElementById('config-text').value || configToText(config);
     const now = new Date();
     const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
     const filename = `GengarTally_Config_${dateStr}.txt`;
 
-    // 優先調用 Android 系統原生分享 (可存檔至 Google 雲端、本機檔案、Keep 或 LINE)
-    if (navigator.share) {
-      try {
-        const file = new File([text], filename, { type: 'text/plain' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: 'GengarTally 設定備份',
-            text: 'GengarTally 設定文檔備份'
-          });
-          return;
-        } else {
-          await navigator.share({
-            title: 'GengarTally 設定備份',
-            text: text
-          });
-          return;
-        }
-      } catch (err) {
-        if (err.name === 'AbortError') return; // 使用者按取消
-      }
-    }
-
-    // 瀏覽器 Blob 下載保底
     try {
-      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
+      const encodedUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
+      a.setAttribute('href', encodedUri);
+      a.setAttribute('download', filename);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (e) {}
-
-    // 同步複製至剪貼簿作為雙重保障
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-      }
-      alert('已嘗試下載檔案，並同步將文檔複製至剪貼簿！');
     } catch (e) {
-      alert('匯出已執行。');
+      alert('下載失敗，建議改用「📋 複製」保存。');
+    }
+  }
+
+  async function shareConfigFile() {
+    const text = document.getElementById('config-text').value || configToText(config);
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'GengarTally 設定備份',
+          text: text
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') copyConfigToClipboard();
+      }
+    } else {
+      copyConfigToClipboard();
     }
   }
 
