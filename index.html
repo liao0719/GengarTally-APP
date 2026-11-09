@@ -20,7 +20,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #09090b; color: #f4f4f5; display: flex; justify-content: center; min-height: 100vh; padding: 12px; }
-    .app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; }
+    .app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; padding-bottom: 24px; }
     
     header { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
     h1 { font-size: 1.25rem; font-weight: 700; color: #fff; }
@@ -77,8 +77,12 @@
     }
     .select-input:focus { border-color: #818cf8; }
 
-    .btn-submit { background: #10b981; border: none; color: #fff; padding: 14px; border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; margin-top: 4px; }
+    /* 表單送出與取消編輯按鈕 */
+    .submit-wrap { display: flex; gap: 8px; margin-top: 4px; }
+    .btn-submit { flex: 1; background: #10b981; border: none; color: #fff; padding: 14px; border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: background 0.2s ease; }
+    .btn-submit.edit-mode { background: #6366f1; }
     .btn-submit:active { opacity: 0.85; }
+    .btn-cancel-edit { background: #27272a; border: 1px solid #3f3f46; color: #d4d4d8; padding: 14px 16px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
 
     .history-card { background: #18181b; border: 1px solid #27272a; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
     .history-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: 600; color: #a1a1aa; }
@@ -86,16 +90,17 @@
     .btn-clear { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; }
     .btn-clear:hover { background: rgba(239, 68, 68, 0.2); }
     .swipe-tip { font-size: 0.72rem; color: #71717a; margin-top: -4px; }
-    .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; overflow-x: hidden; }
+    .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; overflow-x: hidden; }
     
+    /* 歷史單項紀錄（無叉叉按鈕，點擊彈出操作選單） */
     .history-item { 
       display: flex; justify-content: space-between; align-items: center; 
-      background: #09090b; padding: 10px 12px; border-radius: 8px; border: 1px solid #27272a;
-      position: relative; touch-action: pan-y; user-select: none; cursor: grab;
+      background: #09090b; padding: 10px 14px; border-radius: 8px; border: 1px solid #27272a;
+      position: relative; touch-action: pan-y; user-select: none; cursor: pointer;
       transition: transform 0.2s ease, opacity 0.2s ease;
       border-left: 4px solid #71717a;
     }
-    .history-item:active { cursor: grabbing; }
+    .history-item:active { background: #141417; }
 
     .item-left { display: flex; flex-direction: column; gap: 2px; pointer-events: none; }
     .item-title-row { display: flex; align-items: center; gap: 6px; }
@@ -104,11 +109,44 @@
 
     .item-sub { font-size: 0.75rem; color: #a1a1aa; }
     .item-note { font-size: 0.72rem; color: #71717a; }
-    .item-right { display: flex; align-items: center; gap: 10px; }
-    .item-amount { font-size: 1.05rem; font-weight: 700; color: #f87171; pointer-events: none; }
-    .item-del { background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 1.1rem; padding: 0 6px; }
+    .item-right { display: flex; align-items: center; pointer-events: none; }
+    .item-amount { font-size: 1.05rem; font-weight: 700; color: #f87171; }
 
-    /* 設定彈窗 */
+    /* 操作彈窗 (編輯 / 複製) */
+    .action-sheet {
+      background: #18181b; border: 1px solid #3f3f46; border-radius: 16px;
+      width: 100%; max-width: 440px; padding: 16px; display: flex;
+      flex-direction: column; gap: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    }
+    .action-sheet-title { font-size: 0.9rem; font-weight: 600; color: #a1a1aa; text-align: center; margin-bottom: 4px; }
+    .action-btn {
+      background: #27272a; border: 1px solid #3f3f46; color: #fff;
+      padding: 12px; border-radius: 10px; font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; text-align: center; transition: background 0.15s ease;
+    }
+    .action-btn:active { background: #3f3f46; }
+    .action-btn.cancel { background: transparent; border: none; color: #71717a; margin-top: 2px; }
+
+    /* 刪除復原 (Undo) 浮動提示列 */
+    .undo-toast {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%) translateY(90px);
+      background: #27272a; border: 1px solid #3f3f46; color: #f4f4f5;
+      padding: 9px 16px; border-radius: 30px; display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.7); font-size: 0.82rem; z-index: 1000;
+      opacity: 0; pointer-events: none;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    }
+    .undo-toast.show {
+      transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto;
+    }
+    .btn-undo {
+      background: #10b981; border: none; color: #fff; font-weight: 700;
+      padding: 4px 10px; border-radius: 14px; font-size: 0.78rem; cursor: pointer;
+    }
+    .btn-undo:active { opacity: 0.85; }
+
+    /* 設定彈窗樣式 */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; justify-content: center; align-items: center; padding: 16px; z-index: 99; }
     .modal { background: #18181b; border: 1px solid #3f3f46; border-radius: 14px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
     .modal-title { font-size: 1.05rem; font-weight: 700; color: #fff; }
@@ -121,13 +159,13 @@
     .color-picker-item input[type="color"]::-webkit-color-swatch { border: 1px solid #3f3f46; border-radius: 50%; }
 
     .modal textarea { 
-      width: 100%; height: 220px; background: #09090b; border: 1px solid #3f3f46; 
+      width: 100%; height: 240px; background: #09090b; border: 1px solid #3f3f46; 
       color: #38bdf8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 0.9rem; padding: 12px; 
       border-radius: 8px; outline: none; resize: none; line-height: 1.6;
     }
     .modal-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
 
-    /* 回收桶 */
+    /* 回收桶樣式 */
     .trash-section { border-top: 1px solid #27272a; padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
     .trash-header { display: flex; justify-content: space-between; align-items: center; }
     .trash-title { font-size: 0.88rem; font-weight: 600; color: #f87171; display: flex; align-items: center; gap: 4px; }
@@ -152,7 +190,7 @@
       <button type="button" class="btn-today" onclick="setToday()">今天</button>
     </div>
 
-    <!-- 支出項目與快捷標籤欄位 -->
+    <!-- 支出項目與快捷標籤 -->
     <div class="item-group">
       <input type="text" id="tx-item" class="text-input" placeholder="支出項目">
       <div id="quick-items-scroll" class="quick-scroll"></div>
@@ -177,7 +215,10 @@
 
     <input type="text" id="tx-note" class="text-input" placeholder="備註">
 
-    <button type="button" class="btn-submit" onclick="submitRecord()">新增支出</button>
+    <div class="submit-wrap">
+      <button type="button" id="btn-submit" class="btn-submit" onclick="submitRecord()">新增支出</button>
+      <button type="button" id="btn-cancel-edit" class="btn-cancel-edit" style="display:none;" onclick="cancelEdit()">取消修改</button>
+    </div>
   </div>
 
   <div class="history-card">
@@ -188,11 +229,28 @@
         <button type="button" class="btn-clear" onclick="clearAllRecords()">清空紀錄</button>
       </div>
     </div>
-    <div class="swipe-tip">向左滑動任一筆紀錄可移入回收桶</div>
+    <div class="swipe-tip">點擊可「編輯/複製」，向左滑動直接刪除</div>
     <div id="history-list" class="history-list"></div>
   </div>
 </div>
 
+<!-- 紀錄操作彈窗 (編輯 / 複製) -->
+<div id="action-modal" class="modal-backdrop">
+  <div class="action-sheet" onclick="event.stopPropagation()">
+    <div class="action-sheet-title" id="action-sheet-title">紀錄操作</div>
+    <button type="button" class="action-btn" onclick="triggerEditRecord()">✏️ 編輯修改此紀錄</button>
+    <button type="button" class="action-btn" onclick="triggerCopyRecord()">📋 複製帶入再記一筆</button>
+    <button type="button" class="action-btn cancel" onclick="closeActionModal()">取消</button>
+  </div>
+</div>
+
+<!-- 刪除復原 (Undo) 浮動提示 -->
+<div id="undo-toast" class="undo-toast">
+  <span id="undo-msg">已刪除紀錄</span>
+  <button type="button" class="btn-undo" onclick="undoLastDelete()">復原</button>
+</div>
+
+<!-- 設定彈窗 -->
 <div id="config-modal" class="modal-backdrop">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-title">快速設定帳戶</div>
@@ -238,32 +296,73 @@
 </div>
 
 <script>
+  // 套用指定的自訂類別顏色與完整配置清單
   const DEFAULT_CONFIG = {
     colors: {
-      mobile: "#0ea5e9",
-      card: "#8b5cf6",
-      bank: "#f59e0b",
-      cash: "#10b981"
+      mobile: "#ff0000",
+      card: "#00ffff",
+      bank: "#ffff00",
+      cash: "#00ff00"
     },
     quick_items: ["711", "蝦皮", "吃飯", "加油"],
     mobile_platforms: [
-      { name: "LINE Pay", cards: ["玉山 Unicard", "LINE Pay 餘額"] },
-      { name: "街口支付", cards: ["國泰世華 CUBE 卡", "街口帳戶餘額"] },
-      { name: "全支付", cards: ["國泰世華 CUBE 卡", "全支付帳戶"] }
+      {
+        name: "GP",
+        cards: ["永豐SPORT卡(M)", "國泰CUBE卡(V)", "彰銀My樂(M)", "中信uniopen聯名卡(M)"]
+      },
+      {
+        name: "LINE Pay",
+        cards: ["玉山Unicard(V)", "彰銀My樂(M)", "台新太陽卡(J)"]
+      },
+      {
+        name: "街口支付",
+        cards: ["玉山Unicard(V)", "彰銀My樂(M)"]
+      },
+      {
+        name: "台灣PAY",
+        cards: ["彰銀My樂(M)"]
+      },
+      {
+        name: "全支付",
+        cards: ["玉山Unicard(V)"]
+      },
+      {
+        name: "悠遊付",
+        cards: ["玉山Unicard(V)", "彰銀My購(M)"]
+      },
+      {
+        name: "台新PAY",
+        cards: ["台新太陽卡(J)"]
+      }
     ],
-    direct_cards: ["國泰世華 CUBE 卡", "玉山 Unicard", "永豐 SPORT 卡"],
-    bank_accounts: ["國泰世華帳戶", "玉山銀行帳戶", "永豐銀行帳戶"]
+    direct_cards: [
+      "星展傳說對決聯名卡(V)",
+      "國泰CUBE卡(V)",
+      "玉山Unicard(V)",
+      "永豐SPORT卡(M)",
+      "彰銀My購(M)",
+      "永豐DAWHO現金回饋信用卡(V)",
+      "元大鑽金卡(J)"
+    ],
+    bank_accounts: [
+      "將來",
+      "玉山"
+    ]
   };
+
+  const CURRENT_CONFIG_VER = "20261109_custom_v2";
 
   let config;
   try {
+    const savedVer = localStorage.getItem('expense_config_version');
     const savedCfg = JSON.parse(localStorage.getItem('expense_config'));
-    if (savedCfg && Array.isArray(savedCfg.mobile_platforms) && Array.isArray(savedCfg.direct_cards) && Array.isArray(savedCfg.bank_accounts)) {
-      config = savedCfg;
-      if (!config.colors) config.colors = { ...DEFAULT_CONFIG.colors };
-      if (!Array.isArray(config.quick_items)) config.quick_items = [...DEFAULT_CONFIG.quick_items];
-    } else {
+
+    if (savedVer !== CURRENT_CONFIG_VER || !savedCfg || !Array.isArray(savedCfg.mobile_platforms)) {
       config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      localStorage.setItem('expense_config', JSON.stringify(config));
+      localStorage.setItem('expense_config_version', CURRENT_CONFIG_VER);
+    } else {
+      config = savedCfg;
     }
   } catch (e) {
     config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
@@ -301,21 +400,29 @@
   let curPlatform = '';
   let curCard = '';
 
+  let editingRecordId = null;
+  let activeSelectedRecord = null;
+  let lastDeletedRecord = null;
+  let undoTimeout = null;
+
   function init() {
     setToday();
     renderQuickItems();
     renderSubMethods();
     renderHistory();
 
-    const modalBackdrop = document.getElementById('config-modal');
-    modalBackdrop.addEventListener('click', () => {
-      closeConfigModal();
-    });
+    document.getElementById('config-modal').addEventListener('click', closeConfigModal);
+    document.getElementById('action-modal').addEventListener('click', closeActionModal);
 
     window.addEventListener('popstate', (e) => {
-      const modal = document.getElementById('config-modal');
-      if (modal && modal.style.display === 'flex') {
-        modal.style.display = 'none';
+      const actModal = document.getElementById('action-modal');
+      if (actModal && actModal.style.display === 'flex') {
+        actModal.style.display = 'none';
+        activeSelectedRecord = null;
+      }
+      const cfgModal = document.getElementById('config-modal');
+      if (cfgModal && cfgModal.style.display === 'flex') {
+        cfgModal.style.display = 'none';
       }
     });
   }
@@ -329,7 +436,6 @@
     if (input) input.value = `${y}-${m}-${d}`;
   }
 
-  // --- 常用項目膠囊渲染與長按拖曳排序 ---
   function renderQuickItems() {
     const container = document.getElementById('quick-items-scroll');
     if (!container) return;
@@ -349,25 +455,18 @@
       chip.draggable = true;
       chip.dataset.index = idx;
 
-      // 電腦滑鼠拖曳
       chip.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('text/plain', idx);
         chip.classList.add('dragging');
       });
-      chip.addEventListener('dragend', () => {
-        chip.classList.remove('dragging');
-      });
+      chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
       chip.addEventListener('dragover', (e) => e.preventDefault());
       chip.addEventListener('drop', (e) => {
         e.preventDefault();
         const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
-        const toIdx = idx;
-        if (fromIdx !== toIdx) {
-          reorderQuickItem(fromIdx, toIdx);
-        }
+        if (fromIdx !== idx) reorderQuickItem(fromIdx, idx);
       });
 
-      // 手機觸控長按拖曳
       let holdTimer = null;
       let isDragging = false;
       let startX = 0, startY = 0;
@@ -386,16 +485,13 @@
       chip.addEventListener('touchmove', (e) => {
         const diffX = Math.abs(e.touches[0].clientX - startX);
         const diffY = Math.abs(e.touches[0].clientY - startY);
-        if (!isDragging && (diffX > 8 || diffY > 8)) {
-          clearTimeout(holdTimer);
-        }
+        if (!isDragging && (diffX > 8 || diffY > 8)) clearTimeout(holdTimer);
         if (isDragging) {
           e.preventDefault();
           const targetElem = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
           const targetChip = targetElem ? targetElem.closest('.quick-chip') : null;
           if (targetChip && targetChip !== chip) {
-            const targetIdx = parseInt(targetChip.dataset.index, 10);
-            reorderQuickItem(idx, targetIdx);
+            reorderQuickItem(idx, parseInt(targetChip.dataset.index, 10));
           }
         }
       }, { passive: false });
@@ -410,11 +506,8 @@
         }
       });
 
-      // 電腦點擊填寫
-      chip.addEventListener('click', (e) => {
-        if (!chip.classList.contains('dragging')) {
-          selectQuickItem(itemText);
-        }
+      chip.addEventListener('click', () => {
+        if (!chip.classList.contains('dragging')) selectQuickItem(itemText);
       });
 
       container.appendChild(chip);
@@ -583,21 +676,52 @@
       payDetail = curCard;
     }
 
-    records.unshift({
-      id: Date.now(),
-      item: itemVal,
-      date: dateVal,
-      amount: amountVal,
-      note: noteVal,
-      methodType: curMethod,
-      methodDetail: payDetail
-    });
+    if (editingRecordId !== null) {
+      const targetIndex = records.findIndex(r => r.id === editingRecordId);
+      if (targetIndex !== -1) {
+        records[targetIndex] = {
+          id: editingRecordId,
+          item: itemVal,
+          date: dateVal,
+          amount: amountVal,
+          note: noteVal,
+          methodType: curMethod,
+          methodDetail: payDetail
+        };
+      }
+      cancelEdit();
+    } else {
+      records.unshift({
+        id: Date.now(),
+        item: itemVal,
+        date: dateVal,
+        amount: amountVal,
+        note: noteVal,
+        methodType: curMethod,
+        methodDetail: payDetail
+      });
+    }
 
+    records.sort((a, b) => new Date(b.date) - new Date(a.date));
     localStorage.setItem('expense_records', JSON.stringify(records));
+    
     itemInput.value = '';
     amountInput.value = '';
     noteInput.value = '';
     renderHistory();
+  }
+
+  function cancelEdit() {
+    editingRecordId = null;
+    const submitBtn = document.getElementById('btn-submit');
+    submitBtn.innerText = '新增支出';
+    submitBtn.classList.remove('edit-mode');
+    document.getElementById('btn-cancel-edit').style.display = 'none';
+
+    document.getElementById('tx-item').value = '';
+    document.getElementById('tx-amount').value = '';
+    document.getElementById('tx-note').value = '';
+    setToday();
   }
 
   function hexToRgba(hex, alpha) {
@@ -643,16 +767,16 @@
         </div>
         <div class="item-right">
           <div class="item-amount">$${r.amount.toLocaleString()}</div>
-          <button type="button" class="item-del" onclick="moveToTrash(${r.id})">×</button>
         </div>
       `;
 
-      let startX = 0, startY = 0, isDragging = false, currentDiffX = 0;
+      let startX = 0, startY = 0, isDragging = false, currentDiffX = 0, hasMoved = false;
       
       const onStart = (clientX, clientY) => {
         startX = clientX;
         startY = clientY;
         isDragging = true;
+        hasMoved = false;
         currentDiffX = 0;
         item.style.transition = 'none';
       };
@@ -661,6 +785,11 @@
         if (!isDragging) return;
         const diffX = clientX - startX;
         const diffY = clientY - startY;
+
+        if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
+          hasMoved = true;
+        }
+
         if (diffX < 0 && Math.abs(diffX) > Math.abs(diffY)) {
           currentDiffX = diffX;
           item.style.transform = `translateX(${diffX}px)`;
@@ -687,7 +816,6 @@
       item.addEventListener('touchend', onEnd);
 
       item.addEventListener('mousedown', (e) => {
-        if (e.target.closest('.item-del')) return;
         onStart(e.clientX, e.clientY);
         const onMouseMove = (ev) => onMove(ev.clientX, ev.clientY);
         const onMouseUp = () => {
@@ -699,6 +827,12 @@
         window.addEventListener('mouseup', onMouseUp);
       });
 
+      item.addEventListener('click', () => {
+        if (!hasMoved && Math.abs(currentDiffX) < 8) {
+          openActionModal(r);
+        }
+      });
+
       list.appendChild(item);
     });
 
@@ -706,15 +840,129 @@
     if (totalEl) totalEl.innerText = `合計: $${total.toLocaleString()}`;
   }
 
+  function openActionModal(record) {
+    activeSelectedRecord = record;
+    const title = document.getElementById('action-sheet-title');
+    if (title) title.innerText = `${record.item} · $${record.amount.toLocaleString()}`;
+
+    history.pushState({ actionModalOpen: true }, '');
+    document.getElementById('action-modal').style.display = 'flex';
+  }
+
+  function closeActionModal() {
+    const modal = document.getElementById('action-modal');
+    if (modal && modal.style.display === 'flex') {
+      modal.style.display = 'none';
+      activeSelectedRecord = null;
+      if (history.state && history.state.actionModalOpen) {
+        history.back();
+      }
+    }
+  }
+
+  function triggerEditRecord() {
+    if (!activeSelectedRecord) return;
+    loadRecordIntoForm(activeSelectedRecord, true);
+    closeActionModal();
+  }
+
+  function triggerCopyRecord() {
+    if (!activeSelectedRecord) return;
+    loadRecordIntoForm(activeSelectedRecord, false);
+    closeActionModal();
+  }
+
+  function loadRecordIntoForm(r, isEdit) {
+    const itemInput = document.getElementById('tx-item');
+    const amountInput = document.getElementById('tx-amount');
+    const dateInput = document.getElementById('tx-date');
+    const noteInput = document.getElementById('tx-note');
+
+    itemInput.value = r.item || '';
+    amountInput.value = r.amount || '';
+    noteInput.value = r.note || '';
+
+    if (isEdit) {
+      dateInput.value = r.date || '';
+      editingRecordId = r.id;
+      const submitBtn = document.getElementById('btn-submit');
+      submitBtn.innerText = '儲存修改';
+      submitBtn.classList.add('edit-mode');
+      document.getElementById('btn-cancel-edit').style.display = 'block';
+    } else {
+      setToday();
+      editingRecordId = null;
+      const submitBtn = document.getElementById('btn-submit');
+      submitBtn.innerText = '新增支出';
+      submitBtn.classList.remove('edit-mode');
+      document.getElementById('btn-cancel-edit').style.display = 'none';
+    }
+
+    const type = r.methodType || 'mobile';
+    setMainMethod(type);
+
+    if (type === 'mobile') {
+      const parts = (r.methodDetail || '').split(' · ');
+      curPlatform = parts[0] || '';
+      curCard = parts[1] || '';
+      renderSubMethods();
+    } else if (type === 'card' || type === 'bank') {
+      curCard = r.methodDetail || '';
+      renderSubMethods();
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    amountInput.focus();
+  }
+
   function moveToTrash(id) {
     const target = records.find(r => r.id === id);
     if (!target) return;
     
-    trashRecords.unshift({ ...target, deletedAt: new Date().toLocaleString() });
+    const trashedItem = { ...target, deletedAt: new Date().toLocaleString() };
+    trashRecords.unshift(trashedItem);
     records = records.filter(r => r.id !== id);
+
+    if (editingRecordId === id) cancelEdit();
     
     localStorage.setItem('expense_records', JSON.stringify(records));
     localStorage.setItem('expense_trash', JSON.stringify(trashRecords));
+    renderHistory();
+
+    showUndoToast(trashedItem);
+  }
+
+  function showUndoToast(record) {
+    lastDeletedRecord = record;
+    const toast = document.getElementById('undo-toast');
+    const msg = document.getElementById('undo-msg');
+    if (!toast || !msg) return;
+
+    msg.innerText = `已刪除：${record.item} · $${record.amount.toLocaleString()}`;
+    toast.classList.add('show');
+
+    clearTimeout(undoTimeout);
+    undoTimeout = setTimeout(() => {
+      toast.classList.remove('show');
+      lastDeletedRecord = null;
+    }, 3500);
+  }
+
+  function undoLastDelete() {
+    if (!lastDeletedRecord) return;
+    const toast = document.getElementById('undo-toast');
+    if (toast) toast.classList.remove('show');
+    clearTimeout(undoTimeout);
+
+    trashRecords = trashRecords.filter(t => t.id !== lastDeletedRecord.id);
+    const { deletedAt, ...restored } = lastDeletedRecord;
+    records.unshift(restored);
+    records.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    localStorage.setItem('expense_records', JSON.stringify(records));
+    localStorage.setItem('expense_trash', JSON.stringify(trashRecords));
+
+    lastDeletedRecord = null;
     renderHistory();
   }
 
@@ -728,6 +976,7 @@
       const moved = records.map(r => ({ ...r, deletedAt: nowStr }));
       trashRecords = [...moved, ...trashRecords];
       records = [];
+      cancelEdit();
       
       localStorage.setItem('expense_records', JSON.stringify(records));
       localStorage.setItem('expense_trash', JSON.stringify(trashRecords));
@@ -795,10 +1044,10 @@
   function configToText(cfg) {
     const c = cfg.colors || DEFAULT_CONFIG.colors;
     let lines = ['[類別顏色]'];
-    lines.push(`行動支付: ${c.mobile || '#0ea5e9'}`);
-    lines.push(`信用卡: ${c.card || '#8b5cf6'}`);
-    lines.push(`帳戶: ${c.bank || '#f59e0b'}`);
-    lines.push(`現金: ${c.cash || '#10b981'}`);
+    lines.push(`行動支付: ${c.mobile || '#ff0000'}`);
+    lines.push(`信用卡: ${c.card || '#00ffff'}`);
+    lines.push(`帳戶: ${c.bank || '#ffff00'}`);
+    lines.push(`現金: ${c.cash || '#00ff00'}`);
 
     lines.push('\n[常用項目]');
     (cfg.quick_items || []).forEach(item => lines.push(item));
@@ -850,9 +1099,7 @@
           else if (key.includes('帳戶')) newCfg.colors.bank = val;
         }
       } else if (section === 'quick') {
-        if (newCfg.quick_items.length < 10) {
-          newCfg.quick_items.push(line);
-        }
+        if (newCfg.quick_items.length < 10) newCfg.quick_items.push(line);
       } else if (section === 'mobile') {
         if (line.endsWith(':') || line.endsWith('：')) {
           const pName = line.replace(/[:：]$/, '').trim();
@@ -881,10 +1128,10 @@
 
   function openConfigModal() {
     const c = config.colors || DEFAULT_CONFIG.colors;
-    document.getElementById('picker-mobile').value = c.mobile || '#0ea5e9';
-    document.getElementById('picker-card').value = c.card || '#8b5cf6';
-    document.getElementById('picker-bank').value = c.bank || '#f59e0b';
-    document.getElementById('picker-cash').value = c.cash || '#10b981';
+    document.getElementById('picker-mobile').value = c.mobile || '#ff0000';
+    document.getElementById('picker-card').value = c.card || '#00ffff';
+    document.getElementById('picker-bank').value = c.bank || '#ffff00';
+    document.getElementById('picker-cash').value = c.cash || '#00ff00';
 
     document.getElementById('config-text').value = configToText(config);
     renderTrashList();
