@@ -39,16 +39,14 @@
     }
     .tab-btn.active { background: #27272a; color: #fff; border: 1px solid #3f3f46; }
 
-    /* 雙分頁架構：嚴格限制 100% 單頁寬度，非啟用頁面完全 display:none，物理杜絕任何水平溢出拉偏 */
+    /* 雙分頁架構：100% 寬度零溢出切換 */
     .page-view {
       width: 100%;
       display: none;
       flex-direction: column;
       gap: 12px;
     }
-    .page-view.active {
-      display: flex;
-    }
+    .page-view.active { display: flex; }
     .page-view.slide-left {
       animation: slideLeft 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
@@ -263,7 +261,7 @@
     <button type="button" id="tab-btn-1" class="tab-btn" onclick="switchPage(1, 'left')">支出明細 (<span id="tab-count">0</span>)</button>
   </div>
 
-  <!-- 第 1 頁：記帳輸入台 (物理 100% 寬度) -->
+  <!-- 第 1 頁：記帳輸入台 -->
   <div class="page-view active" id="page-entry">
     <div class="card">
       <div class="date-row">
@@ -302,7 +300,7 @@
     </div>
   </div>
 
-  <!-- 第 2 頁：全螢幕支出明細清單 (未選取時 display:none) -->
+  <!-- 第 2 頁：全螢幕支出明細清單 -->
   <div class="page-view" id="page-history">
     <div class="history-card">
       <div class="history-header">
@@ -452,7 +450,7 @@
     ]
   };
 
-  const CURRENT_CONFIG_VER = "20261110_custom_v9";
+  const CURRENT_CONFIG_VER = "20261110_custom_v10";
 
   let config;
   try {
@@ -532,7 +530,7 @@
     });
   }
 
-  // --- 分頁切換 (display:none 切換，絕對無水平滾動溢出) ---
+  // --- 分頁切換 (display 控制，無任何多餘水平溢出) ---
   function switchPage(pageIdx, animDir = 'left') {
     currentPage = pageIdx;
     const pEntry = document.getElementById('page-entry');
@@ -560,18 +558,16 @@
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
-  // --- 全螢幕手勢滑動切頁 (精準避開橫向滾動元件) ---
+  // --- 方案 A：精準排除法 (釋放全螢幕滑動感應) ---
   function initScreenSwipe() {
     let startX = 0, startY = 0, isSwipeActive = false;
 
     document.addEventListener('touchstart', (e) => {
+      // 僅排除「彈窗」與「兩排有自身橫向滾動需求的膠囊按鈕列」，其餘 90% 畫面全部允許滑動切頁
       if (e.target.closest('#config-modal') ||
           e.target.closest('#action-modal') ||
           e.target.closest('.chip-scroll') ||
-          e.target.closest('.quick-scroll') ||
-          e.target.closest('input') ||
-          e.target.closest('select') ||
-          e.target.closest('textarea')) {
+          e.target.closest('.quick-scroll')) {
         isSwipeActive = false;
         return;
       }
@@ -588,7 +584,8 @@
       const diffX = endX - startX;
       const diffY = endY - startY;
 
-      if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
+      // 水平位移超過 45px 且明顯大於垂直滾動即視為流暢切頁
+      if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
         if (diffX < 0 && currentPage === 0) {
           switchPage(1, 'left');
         } else if (diffX > 0 && currentPage === 1) {
@@ -718,16 +715,15 @@
     curMethod = m;
     curPlatform = '';
     curCard = '';
-    const methods = ['mobile', 'card', 'bank', 'cash'];
     document.querySelectorAll('.btn-grid .btn-opt').forEach((btn, idx) => {
-      btn.classList.toggle('active', methods[idx] === m);
+      btn.classList.toggle('active', ['mobile', 'card', 'bank', 'cash'][idx] === m);
     });
     const panel = document.getElementById('sub-method-panel');
     if (panel) panel.innerHTML = '';
     renderSubMethods();
   }
 
-  // --- 子付款方式渲染 (完全無程式捲動，保留自然手勢滾動位置) ---
+  // --- 子付款方式 (保留手指當前滾動位置，點擊絕不飄移) ---
   function renderSubMethods() {
     const panel = document.getElementById('sub-method-panel');
     if (!panel) return;
@@ -1032,7 +1028,7 @@
         isDragging = false;
         const diffX = clientX !== undefined ? (clientX - startX) : currentDiffX;
         
-        // 在歷史清單向右滑動切回記帳頁
+        // 在歷史清單項目向右滑動切回記帳頁
         if (diffX > 75 && Math.abs(diffX) > Math.abs(clientY - startY)) {
           switchPage(0, 'right');
           return;
