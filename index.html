@@ -19,8 +19,9 @@
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #09090b; color: #f4f4f5; display: flex; justify-content: center; min-height: 100vh; padding: 10px 12px 24px; overflow-x: hidden; }
-    .app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 10px; }
+    html, body { width: 100%; max-width: 100vw; overflow-x: hidden; touch-action: pan-y; }
+    body { background-color: #09090b; color: #f4f4f5; display: flex; justify-content: center; min-height: 100vh; padding: 10px 12px 24px; }
+    .app-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 10px; overflow-x: hidden; }
     
     header { display: flex; justify-content: space-between; align-items: center; padding: 4px 2px; }
     h1 { font-size: 1.25rem; font-weight: 700; color: #fff; }
@@ -38,14 +39,31 @@
     }
     .tab-btn.active { background: #27272a; color: #fff; border: 1px solid #3f3f46; }
 
-    /* 雙分頁左右滑動輪播軌道 */
-    .slider-viewport { width: 100%; overflow: hidden; position: relative; border-radius: 14px; }
-    .slider-track {
-      display: flex; width: 200%; 
-      transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1);
-      touch-action: pan-y;
+    /* 雙分頁架構：嚴格限制 100% 單頁寬度，非啟用頁面完全 display:none，物理杜絕任何水平溢出拉偏 */
+    .page-view {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
     }
-    .slider-page { width: 50%; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+    .page-view.active {
+      display: flex;
+    }
+    .page-view.slide-left {
+      animation: slideLeft 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .page-view.slide-right {
+      animation: slideRight 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes slideLeft {
+      from { opacity: 0.5; transform: translateX(25px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideRight {
+      from { opacity: 0.5; transform: translateX(-25px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
 
     /* 表單與卡片容器 */
     .card { background: #18181b; border: 1px solid #27272a; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
@@ -61,7 +79,7 @@
     /* 常用項目快捷膠囊滑動條 */
     .quick-scroll {
       display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 4px;
-      scrollbar-width: none; touch-action: pan-x;
+      scrollbar-width: none; touch-action: pan-x; overscroll-behavior-x: contain;
     }
     .quick-scroll::-webkit-scrollbar { display: none; }
     .quick-chip {
@@ -87,11 +105,16 @@
 
     .sub-box { background: #09090b; border: 1px dashed #3f3f46; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
     .chip-scroll { 
+      position: relative;
       display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;
-      scrollbar-width: none; touch-action: pan-x;
+      scrollbar-width: none; touch-action: pan-x; overscroll-behavior-x: contain;
     }
     .chip-scroll::-webkit-scrollbar { display: none; }
-    .chip { background: #18181b; border: 1px solid #3f3f46; color: #a1a1aa; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; transition: background 0.15s ease; }
+    .chip { 
+      background: #18181b; border: 1px solid #3f3f46; color: #a1a1aa; 
+      padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; 
+      white-space: nowrap; transition: background 0.15s ease; flex-shrink: 0; 
+    }
     .chip.active { background: #4f46e5; border-color: #6366f1; color: #fff; }
 
     .select-wrap { display: flex; flex-direction: column; gap: 6px; }
@@ -160,12 +183,8 @@
       opacity: 0; pointer-events: none;
       transition: transform 0.28s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.25s ease;
     }
-    .top-toast.show {
-      transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto;
-    }
-    .top-toast-icon {
-      color: #10b981; font-weight: 800; font-size: 1rem;
-    }
+    .top-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+    .top-toast-icon { color: #10b981; font-weight: 800; font-size: 1rem; }
 
     /* 操作選單彈窗 */
     .action-sheet {
@@ -192,9 +211,7 @@
       opacity: 0; pointer-events: none;
       transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
     }
-    .undo-toast.show {
-      transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto;
-    }
+    .undo-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
     .btn-undo {
       background: #10b981; border: none; color: #fff; font-weight: 700;
       padding: 4px 10px; border-radius: 14px; font-size: 0.78rem; cursor: pointer;
@@ -213,7 +230,6 @@
     .color-picker-item input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
     .color-picker-item input[type="color"]::-webkit-color-swatch { border: 1px solid #3f3f46; border-radius: 50%; }
 
-    /* 備份工具列 */
     .config-tools-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
 
     .modal textarea { 
@@ -243,69 +259,64 @@
   </header>
 
   <div class="nav-tabs">
-    <button type="button" id="tab-btn-0" class="tab-btn active" onclick="switchPage(0)">記帳</button>
-    <button type="button" id="tab-btn-1" class="tab-btn" onclick="switchPage(1)">支出明細 (<span id="tab-count">0</span>)</button>
+    <button type="button" id="tab-btn-0" class="tab-btn active" onclick="switchPage(0, 'right')">記帳</button>
+    <button type="button" id="tab-btn-1" class="tab-btn" onclick="switchPage(1, 'left')">支出明細 (<span id="tab-count">0</span>)</button>
   </div>
 
-  <div class="slider-viewport" id="slider-viewport">
-    <div class="slider-track" id="slider-track">
-      
-      <!-- 第 1 頁：記帳輸入台 -->
-      <div class="slider-page" id="page-entry">
-        <div class="card">
-          <div class="date-row">
-            <input type="date" id="tx-date" class="date-input">
-            <button type="button" class="btn-today" onclick="setToday()">今天</button>
-          </div>
+  <!-- 第 1 頁：記帳輸入台 (物理 100% 寬度) -->
+  <div class="page-view active" id="page-entry">
+    <div class="card">
+      <div class="date-row">
+        <input type="date" id="tx-date" class="date-input">
+        <button type="button" class="btn-today" onclick="setToday()">今天</button>
+      </div>
 
-          <div class="item-group">
-            <input type="text" id="tx-item" class="text-input" placeholder="支出項目">
-            <div id="quick-items-scroll" class="quick-scroll"></div>
-          </div>
+      <div class="item-group">
+        <input type="text" id="tx-item" class="text-input" placeholder="支出項目">
+        <div id="quick-items-scroll" class="quick-scroll"></div>
+      </div>
 
-          <div class="amount-wrap">
-            <span class="currency">$</span>
-            <input type="number" id="tx-amount" class="amount-input" placeholder="0" inputmode="decimal">
-          </div>
+      <div class="amount-wrap">
+        <span class="currency">$</span>
+        <input type="number" id="tx-amount" class="amount-input" placeholder="0" inputmode="decimal">
+      </div>
 
-          <div>
-            <div class="section-label">付款方式</div>
-            <div class="btn-grid">
-              <button type="button" class="btn-opt active" onclick="setMainMethod('mobile')">行動支付</button>
-              <button type="button" class="btn-opt" onclick="setMainMethod('card')">信用卡</button>
-              <button type="button" class="btn-opt" onclick="setMainMethod('bank')">銀行帳戶</button>
-              <button type="button" class="btn-opt" onclick="setMainMethod('cash')">現金</button>
-            </div>
-          </div>
-
-          <div id="sub-method-panel" class="sub-box"></div>
-
-          <input type="text" id="tx-note" class="text-input" placeholder="備註">
-
-          <div class="submit-wrap">
-            <button type="button" id="btn-submit" class="btn-submit" onclick="submitRecord()">新增支出</button>
-            <button type="button" id="btn-cancel-edit" class="btn-cancel-edit" style="display:none;" onclick="cancelEdit()">取消修改</button>
-          </div>
+      <div>
+        <div class="section-label">付款方式</div>
+        <div class="btn-grid">
+          <button type="button" class="btn-opt active" onclick="setMainMethod('mobile')">行動支付</button>
+          <button type="button" class="btn-opt" onclick="setMainMethod('card')">信用卡</button>
+          <button type="button" class="btn-opt" onclick="setMainMethod('bank')">銀行帳戶</button>
+          <button type="button" class="btn-opt" onclick="setMainMethod('cash')">現金</button>
         </div>
       </div>
 
-      <!-- 第 2 頁：全螢幕支出明細清單 -->
-      <div class="slider-page" id="page-history">
-        <div class="history-card">
-          <div class="history-header">
-            <span>近期支出明細</span>
-            <div class="history-actions">
-              <span id="history-total">合計: $0</span>
-              <button type="button" class="btn-clear" onclick="clearAllRecords()">清空紀錄</button>
-            </div>
-          </div>
-          <div class="swipe-tip">點擊可「編輯/複製」，向左滑動直接刪除，向右滑切回記帳</div>
-          <div id="history-list" class="history-list"></div>
-        </div>
-      </div>
+      <div id="sub-method-panel" class="sub-box"></div>
 
+      <input type="text" id="tx-note" class="text-input" placeholder="備註">
+
+      <div class="submit-wrap">
+        <button type="button" id="btn-submit" class="btn-submit" onclick="submitRecord()">新增支出</button>
+        <button type="button" id="btn-cancel-edit" class="btn-cancel-edit" style="display:none;" onclick="cancelEdit()">取消修改</button>
+      </div>
     </div>
   </div>
+
+  <!-- 第 2 頁：全螢幕支出明細清單 (未選取時 display:none) -->
+  <div class="page-view" id="page-history">
+    <div class="history-card">
+      <div class="history-header">
+        <span>近期支出明細</span>
+        <div class="history-actions">
+          <span id="history-total">合計: $0</span>
+          <button type="button" class="btn-clear" onclick="clearAllRecords()">清空紀錄</button>
+        </div>
+      </div>
+      <div class="swipe-tip">點擊可「編輯/複製」，向左滑動直接刪除，向右滑切回記帳</div>
+      <div id="history-list" class="history-list"></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- 頂部微膠囊 Toast 提示 -->
@@ -355,7 +366,7 @@
       </label>
     </div>
 
-    <!-- 備份工具列：支援原生下載、原生分享、一鍵複製與匯入 -->
+    <!-- 備份工具列 -->
     <div class="config-tools-row">
       <span style="font-size:0.8rem; color:#a1a1aa;">文檔備份：</span>
       <div style="display:flex; gap:5px;">
@@ -441,7 +452,7 @@
     ]
   };
 
-  const CURRENT_CONFIG_VER = "20261109_custom_v6";
+  const CURRENT_CONFIG_VER = "20261110_custom_v9";
 
   let config;
   try {
@@ -491,7 +502,7 @@
   let curPlatform = '';
   let curCard = '';
 
-  let currentPage = 0;
+  let currentPage = 0; // 0: 記帳, 1: 支出明細
   let editingRecordId = null;
   let activeSelectedRecord = null;
   let lastDeletedRecord = null;
@@ -503,7 +514,7 @@
     renderQuickItems();
     renderSubMethods();
     renderHistory();
-    initPageSwipe();
+    initScreenSwipe();
 
     document.getElementById('config-modal').addEventListener('click', closeConfigModal);
     document.getElementById('action-modal').addEventListener('click', closeActionModal);
@@ -521,43 +532,70 @@
     });
   }
 
-  function switchPage(pageIdx) {
+  // --- 分頁切換 (display:none 切換，絕對無水平滾動溢出) ---
+  function switchPage(pageIdx, animDir = 'left') {
     currentPage = pageIdx;
-    const track = document.getElementById('slider-track');
-    if (track) {
-      track.style.transform = `translateX(-${pageIdx * 50}%)`;
+    const pEntry = document.getElementById('page-entry');
+    const pHistory = document.getElementById('page-history');
+    
+    if (pageIdx === 0) {
+      pHistory.style.display = 'none';
+      pHistory.classList.remove('active', 'slide-left', 'slide-right');
+      
+      pEntry.style.display = 'flex';
+      pEntry.classList.remove('slide-left', 'slide-right');
+      pEntry.classList.add(animDir === 'right' ? 'slide-right' : 'slide-left');
+    } else {
+      pEntry.style.display = 'none';
+      pEntry.classList.remove('active', 'slide-left', 'slide-right');
+      
+      pHistory.style.display = 'flex';
+      pHistory.classList.remove('slide-left', 'slide-right');
+      pHistory.classList.add(animDir === 'left' ? 'slide-left' : 'slide-right');
     }
+
     document.getElementById('tab-btn-0').classList.toggle('active', pageIdx === 0);
     document.getElementById('tab-btn-1').classList.toggle('active', pageIdx === 1);
+    
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
-  function initPageSwipe() {
-    const viewport = document.getElementById('slider-viewport');
-    let startX = 0, startY = 0, isDragging = false;
+  // --- 全螢幕手勢滑動切頁 (精準避開橫向滾動元件) ---
+  function initScreenSwipe() {
+    let startX = 0, startY = 0, isSwipeActive = false;
 
-    viewport.addEventListener('touchstart', (e) => {
-      if (e.target.closest('.history-item') || e.target.closest('.quick-chip')) return;
+    document.addEventListener('touchstart', (e) => {
+      if (e.target.closest('#config-modal') ||
+          e.target.closest('#action-modal') ||
+          e.target.closest('.chip-scroll') ||
+          e.target.closest('.quick-scroll') ||
+          e.target.closest('input') ||
+          e.target.closest('select') ||
+          e.target.closest('textarea')) {
+        isSwipeActive = false;
+        return;
+      }
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
-      isDragging = true;
+      isSwipeActive = true;
     }, { passive: true });
 
-    viewport.addEventListener('touchend', (e) => {
-      if (!isDragging) return;
-      isDragging = false;
+    document.addEventListener('touchend', (e) => {
+      if (!isSwipeActive) return;
+      isSwipeActive = false;
       const endX = e.changedTouches[0].clientX;
       const endY = e.changedTouches[0].clientY;
       const diffX = endX - startX;
       const diffY = endY - startY;
 
-      if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.3) {
+      if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
         if (diffX < 0 && currentPage === 0) {
-          switchPage(1);
+          switchPage(1, 'left');
         } else if (diffX > 0 && currentPage === 1) {
-          switchPage(0);
+          switchPage(0, 'right');
         }
       }
-    });
+    }, { passive: true });
   }
 
   function showTopToast(text) {
@@ -684,9 +722,12 @@
     document.querySelectorAll('.btn-grid .btn-opt').forEach((btn, idx) => {
       btn.classList.toggle('active', methods[idx] === m);
     });
+    const panel = document.getElementById('sub-method-panel');
+    if (panel) panel.innerHTML = '';
     renderSubMethods();
   }
 
+  // --- 子付款方式渲染 (完全無程式捲動，保留自然手勢滾動位置) ---
   function renderSubMethods() {
     const panel = document.getElementById('sub-method-panel');
     if (!panel) return;
@@ -697,7 +738,6 @@
       return;
     }
     panel.style.display = 'flex';
-    panel.innerHTML = '';
 
     if (curMethod === 'mobile') {
       const platforms = config.mobile_platforms || [];
@@ -709,52 +749,31 @@
         curPlatform = platforms[0].name;
       }
 
-      const platformRow = document.createElement('div');
-      platformRow.className = 'chip-scroll';
-      platforms.forEach(p => {
-        const chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'chip' + (p.name === curPlatform ? ' active' : '');
-        chip.innerText = p.name;
-        chip.onclick = () => { 
-          curPlatform = p.name; 
-          curCard = ''; 
-          renderSubMethods(); 
-        };
-        platformRow.appendChild(chip);
-      });
-      panel.appendChild(platformRow);
-
-      // 自動平滑捲動至目前選取的行動支付選項，避免強制跳回最左邊
-      setTimeout(() => {
-        const activeChip = platformRow.querySelector('.chip.active');
-        if (activeChip) {
-          activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-        }
-      }, 10);
-
-      const activePlatform = platforms.find(p => p.name === curPlatform);
-      const cards = (activePlatform && activePlatform.cards) ? activePlatform.cards : [];
-      if (cards.length) {
-        if (!curCard || !cards.includes(curCard)) curCard = cards[0];
-        const selectWrap = document.createElement('div');
-        selectWrap.className = 'select-wrap';
-        selectWrap.innerHTML = `<span class="select-label">選擇扣款卡片 / 帳戶：</span>`;
-
-        const select = document.createElement('select');
-        select.className = 'select-input';
-        cards.forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c;
-          opt.innerText = c;
-          if (c === curCard) opt.selected = true;
-          select.appendChild(opt);
+      let platformRow = panel.querySelector('.chip-scroll');
+      if (!platformRow) {
+        platformRow = document.createElement('div');
+        platformRow.className = 'chip-scroll';
+        platforms.forEach(p => {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'chip' + (p.name === curPlatform ? ' active' : '');
+          chip.innerText = p.name;
+          chip.onclick = (e) => { 
+            e.preventDefault();
+            selectMobilePlatform(p.name);
+          };
+          platformRow.appendChild(chip);
         });
-        select.onchange = (e) => { curCard = e.target.value; };
-        selectWrap.appendChild(select);
-        panel.appendChild(selectWrap);
+        panel.appendChild(platformRow);
+      } else {
+        platformRow.querySelectorAll('.chip').forEach(chip => {
+          chip.classList.toggle('active', chip.innerText === curPlatform);
+        });
       }
+
+      renderPlatformCardSelect();
     } else if (curMethod === 'card') {
+      panel.innerHTML = '';
       const cards = config.direct_cards || [];
       if (!cards.length) {
         panel.innerHTML = '<div style="color:#71717a;font-size:0.8rem;">尚未設定信用卡</div>';
@@ -778,6 +797,7 @@
       selectWrap.appendChild(select);
       panel.appendChild(selectWrap);
     } else if (curMethod === 'bank') {
+      panel.innerHTML = '';
       const accounts = config.bank_accounts || [];
       if (!accounts.length) {
         panel.innerHTML = '<div style="color:#71717a;font-size:0.8rem;">尚未設定帳戶</div>';
@@ -795,6 +815,51 @@
         opt.value = b;
         opt.innerText = b;
         if (b === curCard) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.onchange = (e) => { curCard = e.target.value; };
+      selectWrap.appendChild(select);
+      panel.appendChild(selectWrap);
+    }
+  }
+
+  function selectMobilePlatform(pName) {
+    curPlatform = pName;
+    curCard = '';
+    const panel = document.getElementById('sub-method-panel');
+    if (!panel) return;
+    const platformRow = panel.querySelector('.chip-scroll');
+    if (platformRow) {
+      platformRow.querySelectorAll('.chip').forEach(chip => {
+        chip.classList.toggle('active', chip.innerText === pName);
+      });
+    }
+    renderPlatformCardSelect();
+  }
+
+  function renderPlatformCardSelect() {
+    const panel = document.getElementById('sub-method-panel');
+    if (!panel) return;
+    
+    let selectWrap = panel.querySelector('.select-wrap');
+    if (selectWrap) selectWrap.remove();
+
+    const platforms = config.mobile_platforms || [];
+    const activePlatform = platforms.find(p => p.name === curPlatform);
+    const cards = (activePlatform && activePlatform.cards) ? activePlatform.cards : [];
+    if (cards.length) {
+      if (!curCard || !cards.includes(curCard)) curCard = cards[0];
+      selectWrap = document.createElement('div');
+      selectWrap.className = 'select-wrap';
+      selectWrap.innerHTML = `<span class="select-label">選擇扣款卡片 / 帳戶：</span>`;
+
+      const select = document.createElement('select');
+      select.className = 'select-input';
+      cards.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.innerText = c;
+        if (c === curCard) opt.selected = true;
         select.appendChild(opt);
       });
       select.onchange = (e) => { curCard = e.target.value; };
@@ -822,7 +887,7 @@
     }
 
     const dateInput = document.getElementById('tx-date');
-    const dateVal = dateInput.value || '2026-11-09';
+    const dateVal = dateInput.value || '2026-11-10';
     const noteInput = document.getElementById('tx-note');
     const noteVal = noteInput.value.trim();
 
@@ -967,8 +1032,9 @@
         isDragging = false;
         const diffX = clientX !== undefined ? (clientX - startX) : currentDiffX;
         
+        // 在歷史清單向右滑動切回記帳頁
         if (diffX > 75 && Math.abs(diffX) > Math.abs(clientY - startY)) {
-          switchPage(0);
+          switchPage(0, 'right');
           return;
         }
 
@@ -1036,14 +1102,14 @@
     if (!activeSelectedRecord) return;
     loadRecordIntoForm(activeSelectedRecord, true);
     closeActionModal();
-    switchPage(0);
+    switchPage(0, 'right');
   }
 
   function triggerCopyRecord() {
     if (!activeSelectedRecord) return;
     loadRecordIntoForm(activeSelectedRecord, false);
     closeActionModal();
-    switchPage(0);
+    switchPage(0, 'right');
   }
 
   function loadRecordIntoForm(r, isEdit) {
@@ -1365,20 +1431,17 @@
     }
   }
 
-  // --- 原生下載、原生分享與複製備份 ---
   function downloadConfigFile() {
     const text = document.getElementById('config-text').value || configToText(config);
     const now = new Date();
     const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
     const filename = `GengarTally_Config_${dateStr}.txt`;
 
-    // 優先調用 Android 原生 MediaStore 下載器，直接存入「下載 (Download)」資料夾
     if (window.AndroidBridge && typeof window.AndroidBridge.downloadTextFile === 'function') {
       window.AndroidBridge.downloadTextFile(filename, text);
       return;
     }
 
-    // 瀏覽器保底下載
     try {
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -1397,7 +1460,6 @@
   function shareConfigFile() {
     const text = document.getElementById('config-text').value || configToText(config);
 
-    // 優先調用 Android 原生分享 Intent (支援 LINE, Keep, 雲端硬碟)
     if (window.AndroidBridge && typeof window.AndroidBridge.shareText === 'function') {
       window.AndroidBridge.shareText('GengarTally 設定備份', text);
       return;
