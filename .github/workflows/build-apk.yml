@@ -24,10 +24,6 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # 加入官方 Gradle 快取與加速套件
-      - name: 設定 Gradle 環境
-        uses: gradle/actions/setup-gradle@v4
-
       - name: 初始化本地容器與配置
         run: |
           mkdir -p www
@@ -56,8 +52,9 @@ jobs:
           # 2. 將預設白色背景替換為 App 暗黑底色
           sed -i 's/#FFFFFF/#09090b/g' android/app/src/main/res/values/ic_launcher_background.xml 2>/dev/null || true
           
-          # 3. 將 Gradle 下載包改為體積更小更快的 -bin.zip，避免 504 逾時
-          sed -i 's/-all.zip/-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties 2>/dev/null || true
+          # 3. 將下載來源改為 JetBrains 獨立鏡像源，完全繞過 GitHub 504 故障節點
+          sed -i 's|services.gradle.org/distributions|cache-redirector.jetbrains.com/services.gradle.org/distributions|g' android/gradle/wrapper/gradle-wrapper.properties
+          sed -i 's/-all.zip/-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
 
       - name: 編譯生成 Android Debug APK
         run: |
