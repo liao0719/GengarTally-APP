@@ -53,11 +53,17 @@ jobs:
           fi
           cp gengar-debug.keystore ~/.android/debug.keystore
 
+      # 初始化本地容器，並將 GitHub 動態版本號注入 index.html
       - name: 初始化本地容器與配置
         run: |
           mkdir -p www
           cp index.html www/
           cp gengar.png www/
+          
+          # 將 index.html 內的靜態版本標籤自動替換為動態版本號 (如 v1.0.25)
+          sed -i "s/<span class=\"modal-version-tag\">.*<\/span>/<span class=\"modal-version-tag\">v1.0.${{ github.run_number }}<\/span>/g" www/index.html
+          sed -i "s/GengarTally v[0-9.]* (離線版)/GengarTally v1.0.${{ github.run_number }} (離線版)/g" www/index.html
+
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
           
@@ -157,6 +163,7 @@ jobs:
           }
           EOF
 
+      # 自動將 Android 底層 versionCode 與 versionName 遞增對齊 GitHub 執行編號
       - name: 自動遞增 Android 版本序號
         run: |
           sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/g" android/app/build.gradle
@@ -177,7 +184,7 @@ jobs:
           body: |
             ### GengarTally 自動編譯版本 (v1.0.${{ github.run_number }})
             * 內部版本序號 (versionCode)：${{ github.run_number }}
-            * 支援功能：原生 MediaStore 下載、原生分享與雙頁式流暢互動
+            * 畫面版本標籤：v1.0.${{ github.run_number }}
           draft: false
           prerelease: false
           files: GengarTally.apk
