@@ -333,7 +333,7 @@
   <div class="action-sheet" onclick="event.stopPropagation()">
     <div class="action-sheet-title" id="action-sheet-title">紀錄操作</div>
     <button type="button" class="action-btn" onclick="triggerEditRecord()">✏️ 編輯修改此紀錄</button>
-    <button type="button" class="action-btn onclick="triggerCopyRecord()">📋 複製帶入再記一筆</button>
+    <button type="button" class="action-btn" onclick="triggerCopyRecord()">📋 複製帶入再記一筆</button>
     <button type="button" class="action-btn cancel" onclick="closeActionModal()">取消</button>
   </div>
 </div>
@@ -460,7 +460,7 @@
     ]
   };
 
-  const CURRENT_CONFIG_VER = "20261110_custom_v11";
+  const CURRENT_CONFIG_VER = "20261110_custom_v12";
 
   let config;
   try {
@@ -517,7 +517,29 @@
   let undoTimeout = null;
   let topToastTimeout = null;
 
-  // 亮度計算對比色輔助函式（淺色底回傳黑字，深色底回傳白字）
+  // 通知 Android 原生層目前是否有彈窗開啟（支援 Android 14/15 系統邊緣返回手勢）
+  function notifyNativeModalState(isOpen) {
+    if (window.AndroidBridge && typeof window.AndroidBridge.setModalOpen === 'function') {
+      window.AndroidBridge.setModalOpen(isOpen);
+    }
+  }
+
+  // 供 Android 原生層直接調用的手勢返回處理函式
+  window.handleAndroidBack = function() {
+    const cfgModal = document.getElementById('config-modal');
+    if (cfgModal && cfgModal.style.display === 'flex') {
+      closeConfigModal();
+      return true;
+    }
+    const actModal = document.getElementById('action-modal');
+    if (actModal && actModal.style.display === 'flex') {
+      closeActionModal();
+      return true;
+    }
+    return false;
+  };
+
+  // 亮度計算對比色輔助函式
   function getContrastColor(hex) {
     const c = (hex || '#ffffff').replace('#', '');
     let r = 255, g = 255, b = 255;
@@ -543,18 +565,6 @@
 
     document.getElementById('config-modal').addEventListener('click', closeConfigModal);
     document.getElementById('action-modal').addEventListener('click', closeActionModal);
-
-    window.addEventListener('popstate', (e) => {
-      const actModal = document.getElementById('action-modal');
-      if (actModal && actModal.style.display === 'flex') {
-        actModal.style.display = 'none';
-        activeSelectedRecord = null;
-      }
-      const cfgModal = document.getElementById('config-modal');
-      if (cfgModal && cfgModal.style.display === 'flex') {
-        cfgModal.style.display = 'none';
-      }
-    });
   }
 
   function switchPage(pageIdx, animDir = 'left') {
@@ -734,7 +744,6 @@
     if (amountInput) amountInput.focus();
   }
 
-  // --- 動態渲染主要付款方式按鈕顏色 ---
   function updateMainMethodStyles() {
     const methods = ['mobile', 'card', 'bank', 'cash'];
     const colors = config.colors || DEFAULT_CONFIG.colors;
@@ -773,7 +782,6 @@
     renderSubMethods();
   }
 
-  // --- 子付款方式 (原位更新，且子選項亦呼應類別顏色) ---
   function renderSubMethods() {
     const panel = document.getElementById('sub-method-panel');
     if (!panel) return;
@@ -817,7 +825,6 @@
         panel.appendChild(platformRow);
       }
 
-      // 套用行動支付標籤選取色
       platformRow.querySelectorAll('.chip').forEach(chip => {
         const isActive = (chip.innerText === curPlatform);
         chip.classList.toggle('active', isActive);
@@ -1161,8 +1168,8 @@
     const title = document.getElementById('action-sheet-title');
     if (title) title.innerText = `${record.item} · $${record.amount.toLocaleString()}`;
 
-    history.pushState({ actionModalOpen: true }, '');
     document.getElementById('action-modal').style.display = 'flex';
+    notifyNativeModalState(true);
   }
 
   function closeActionModal() {
@@ -1170,9 +1177,7 @@
     if (modal && modal.style.display === 'flex') {
       modal.style.display = 'none';
       activeSelectedRecord = null;
-      if (history.state && history.state.actionModalOpen) {
-        history.back();
-      }
+      notifyNativeModalState(false);
     }
   }
 
@@ -1453,17 +1458,15 @@
     document.getElementById('config-text').value = configToText(config);
     renderTrashList();
     
-    history.pushState({ modalOpen: true }, '');
     document.getElementById('config-modal').style.display = 'flex';
+    notifyNativeModalState(true);
   }
 
   function closeConfigModal() {
     const modal = document.getElementById('config-modal');
     if (modal && modal.style.display === 'flex') {
       modal.style.display = 'none';
-      if (history.state && history.state.modalOpen) {
-        history.back();
-      }
+      notifyNativeModalState(false);
     }
   }
 
