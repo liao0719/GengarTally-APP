@@ -86,7 +86,7 @@ jobs:
           sed -i 's|services.gradle.org/distributions|cache-redirector.jetbrains.com/services.gradle.org/distributions|g' android/gradle/wrapper/gradle-wrapper.properties
           sed -i 's/-all.zip/-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
 
-      # 注入 Android 原生下載 (MediaStore) 與分享橋接器
+      # 注入 Android 原生下載 (MediaStore)、原生分享與系統手勢返回轉發
       - name: 注入原生檔案下載與分享功能
         run: |
           cat << 'EOF' > android/app/src/main/java/com/gengar/tally/MainActivity.java
@@ -112,6 +112,16 @@ jobs:
               public void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   getBridge().getWebView().addJavascriptInterface(new NativeBridge(), "AndroidBridge");
+              }
+
+              // 攔截 Android 系統邊緣返回手勢，轉發給 WebView 關閉彈窗
+              @Override
+              public void onBackPressed() {
+                  if (getBridge() != null && getBridge().getWebView() != null && getBridge().getWebView().canGoBack()) {
+                      getBridge().getWebView().goBack();
+                  } else {
+                      super.onBackPressed();
+                  }
               }
 
               public class NativeBridge {
@@ -185,6 +195,7 @@ jobs:
             ### GengarTally 自動編譯版本 (v1.0.${{ github.run_number }})
             * 內部版本序號 (versionCode)：${{ github.run_number }}
             * 畫面版本標籤：v1.0.${{ github.run_number }}
+            * 支援功能：系統手勢返回關閉彈窗、原生 MediaStore 下載、原生分享
           draft: false
           prerelease: false
           files: GengarTally.apk
