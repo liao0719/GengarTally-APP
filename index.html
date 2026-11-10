@@ -98,8 +98,11 @@
 
     .section-label { font-size: 0.8rem; font-weight: 600; color: #a1a1aa; margin-bottom: 4px; }
     .btn-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-    .btn-opt { background: #09090b; border: 1px solid #27272a; color: #d4d4d8; padding: 10px 4px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; text-align: center; user-select: none; }
-    .btn-opt.active { background: #6366f1; border-color: #818cf8; color: #fff; font-weight: 600; }
+    .btn-opt { 
+      background: #09090b; border: 1px solid #27272a; color: #d4d4d8; 
+      padding: 10px 4px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; 
+      text-align: center; user-select: none; transition: all 0.15s ease;
+    }
 
     .sub-box { background: #09090b; border: 1px dashed #3f3f46; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
     .chip-scroll { 
@@ -113,7 +116,6 @@
       padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; 
       white-space: nowrap; transition: background 0.15s ease; flex-shrink: 0; 
     }
-    .chip.active { background: #4f46e5; border-color: #6366f1; color: #fff; }
 
     .select-wrap { display: flex; flex-direction: column; gap: 6px; }
     .select-label { font-size: 0.75rem; color: #a1a1aa; font-weight: 500; }
@@ -219,7 +221,9 @@
     /* 設定彈窗樣式 */
     .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; justify-content: center; align-items: center; padding: 16px; z-index: 99; }
     .modal { background: #18181b; border: 1px solid #3f3f46; border-radius: 14px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .modal-header-row { display: flex; justify-content: space-between; align-items: center; }
     .modal-title { font-size: 1.05rem; font-weight: 700; color: #fff; }
+    .modal-version-tag { font-size: 0.75rem; background: #27272a; border: 1px solid #3f3f46; color: #a1a1aa; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
     .modal-desc { font-size: 0.8rem; color: #a1a1aa; line-height: 1.4; }
     
     .color-picker-row { display: flex; justify-content: space-between; align-items: center; background: #09090b; padding: 8px 12px; border-radius: 8px; border: 1px solid #27272a; }
@@ -236,6 +240,7 @@
       border-radius: 8px; outline: none; resize: none; line-height: 1.6;
     }
     .modal-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+    .modal-footer-info { text-align: center; font-size: 0.72rem; color: #52525b; padding-top: 2px; }
 
     /* 回收桶樣式 */
     .trash-section { border-top: 1px solid #27272a; padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
@@ -282,7 +287,7 @@
       <div>
         <div class="section-label">付款方式</div>
         <div class="btn-grid">
-          <button type="button" class="btn-opt active" onclick="setMainMethod('mobile')">行動支付</button>
+          <button type="button" class="btn-opt" onclick="setMainMethod('mobile')">行動支付</button>
           <button type="button" class="btn-opt" onclick="setMainMethod('card')">信用卡</button>
           <button type="button" class="btn-opt" onclick="setMainMethod('bank')">銀行帳戶</button>
           <button type="button" class="btn-opt" onclick="setMainMethod('cash')">現金</button>
@@ -328,7 +333,7 @@
   <div class="action-sheet" onclick="event.stopPropagation()">
     <div class="action-sheet-title" id="action-sheet-title">紀錄操作</div>
     <button type="button" class="action-btn" onclick="triggerEditRecord()">✏️ 編輯修改此紀錄</button>
-    <button type="button" class="action-btn" onclick="triggerCopyRecord()">📋 複製帶入再記一筆</button>
+    <button type="button" class="action-btn onclick="triggerCopyRecord()">📋 複製帶入再記一筆</button>
     <button type="button" class="action-btn cancel" onclick="closeActionModal()">取消</button>
   </div>
 </div>
@@ -339,10 +344,13 @@
   <button type="button" class="btn-undo" onclick="undoLastDelete()">復原</button>
 </div>
 
-<!-- 設定彈窗 -->
+<!-- 設定彈窗 (含版本號標記) -->
 <div id="config-modal" class="modal-backdrop">
   <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-title">快速設定帳戶</div>
+    <div class="modal-header-row">
+      <div class="modal-title">快速設定帳戶</div>
+      <span class="modal-version-tag">v1.0</span>
+    </div>
     <div class="modal-desc">可直接挑選類別顏色；或在文本手動設定常用標籤（最多10個）：</div>
     
     <div class="color-picker-row">
@@ -393,6 +401,8 @@
       </div>
       <div id="trash-list" class="trash-list"></div>
     </div>
+
+    <div class="modal-footer-info">GengarTally v1.0.0 (離線版)</div>
   </div>
 </div>
 
@@ -450,7 +460,7 @@
     ]
   };
 
-  const CURRENT_CONFIG_VER = "20261110_custom_v10";
+  const CURRENT_CONFIG_VER = "20261110_custom_v11";
 
   let config;
   try {
@@ -507,10 +517,27 @@
   let undoTimeout = null;
   let topToastTimeout = null;
 
+  // 亮度計算對比色輔助函式（淺色底回傳黑字，深色底回傳白字）
+  function getContrastColor(hex) {
+    const c = (hex || '#ffffff').replace('#', '');
+    let r = 255, g = 255, b = 255;
+    if (c.length === 3) {
+      r = parseInt(c[0] + c[0], 16);
+      g = parseInt(c[1] + c[1], 16);
+      b = parseInt(c[2] + c[2], 16);
+    } else if (c.length >= 6) {
+      r = parseInt(c.substr(0, 2), 16);
+      g = parseInt(c.substr(2, 2), 16);
+      b = parseInt(c.substr(4, 2), 16);
+    }
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 140) ? '#09090b' : '#ffffff';
+  }
+
   function init() {
     setToday();
     renderQuickItems();
-    renderSubMethods();
+    setMainMethod('mobile');
     renderHistory();
     initScreenSwipe();
 
@@ -530,7 +557,6 @@
     });
   }
 
-  // --- 分頁切換 (display 控制，無任何多餘水平溢出) ---
   function switchPage(pageIdx, animDir = 'left') {
     currentPage = pageIdx;
     const pEntry = document.getElementById('page-entry');
@@ -558,12 +584,10 @@
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
-  // --- 方案 A：精準排除法 (釋放全螢幕滑動感應) ---
   function initScreenSwipe() {
     let startX = 0, startY = 0, isSwipeActive = false;
 
     document.addEventListener('touchstart', (e) => {
-      // 僅排除「彈窗」與「兩排有自身橫向滾動需求的膠囊按鈕列」，其餘 90% 畫面全部允許滑動切頁
       if (e.target.closest('#config-modal') ||
           e.target.closest('#action-modal') ||
           e.target.closest('.chip-scroll') ||
@@ -584,7 +608,6 @@
       const diffX = endX - startX;
       const diffY = endY - startY;
 
-      // 水平位移超過 45px 且明顯大於垂直滾動即視為流暢切頁
       if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
         if (diffX < 0 && currentPage === 0) {
           switchPage(1, 'left');
@@ -711,19 +734,46 @@
     if (amountInput) amountInput.focus();
   }
 
+  // --- 動態渲染主要付款方式按鈕顏色 ---
+  function updateMainMethodStyles() {
+    const methods = ['mobile', 'card', 'bank', 'cash'];
+    const colors = config.colors || DEFAULT_CONFIG.colors;
+
+    document.querySelectorAll('.btn-grid .btn-opt').forEach((btn, idx) => {
+      const m = methods[idx];
+      const isActive = (m === curMethod);
+      const col = colors[m] || '#6366f1';
+
+      if (isActive) {
+        btn.classList.add('active');
+        btn.style.backgroundColor = col;
+        btn.style.borderColor = col;
+        btn.style.color = getContrastColor(col);
+        btn.style.fontWeight = '700';
+        btn.style.boxShadow = `0 2px 10px ${col}44`;
+      } else {
+        btn.classList.remove('active');
+        btn.style.backgroundColor = '#09090b';
+        btn.style.borderColor = '#27272a';
+        btn.style.color = '#d4d4d8';
+        btn.style.fontWeight = 'normal';
+        btn.style.boxShadow = 'none';
+      }
+    });
+  }
+
   function setMainMethod(m) {
     curMethod = m;
     curPlatform = '';
     curCard = '';
-    document.querySelectorAll('.btn-grid .btn-opt').forEach((btn, idx) => {
-      btn.classList.toggle('active', ['mobile', 'card', 'bank', 'cash'][idx] === m);
-    });
+    updateMainMethodStyles();
+
     const panel = document.getElementById('sub-method-panel');
     if (panel) panel.innerHTML = '';
     renderSubMethods();
   }
 
-  // --- 子付款方式 (保留手指當前滾動位置，點擊絕不飄移) ---
+  // --- 子付款方式 (原位更新，且子選項亦呼應類別顏色) ---
   function renderSubMethods() {
     const panel = document.getElementById('sub-method-panel');
     if (!panel) return;
@@ -734,6 +784,10 @@
       return;
     }
     panel.style.display = 'flex';
+
+    const colors = config.colors || DEFAULT_CONFIG.colors;
+    const curTypeColor = colors[curMethod] || '#6366f1';
+    const contrastText = getContrastColor(curTypeColor);
 
     if (curMethod === 'mobile') {
       const platforms = config.mobile_platforms || [];
@@ -752,7 +806,7 @@
         platforms.forEach(p => {
           const chip = document.createElement('button');
           chip.type = 'button';
-          chip.className = 'chip' + (p.name === curPlatform ? ' active' : '');
+          chip.className = 'chip';
           chip.innerText = p.name;
           chip.onclick = (e) => { 
             e.preventDefault();
@@ -761,11 +815,24 @@
           platformRow.appendChild(chip);
         });
         panel.appendChild(platformRow);
-      } else {
-        platformRow.querySelectorAll('.chip').forEach(chip => {
-          chip.classList.toggle('active', chip.innerText === curPlatform);
-        });
       }
+
+      // 套用行動支付標籤選取色
+      platformRow.querySelectorAll('.chip').forEach(chip => {
+        const isActive = (chip.innerText === curPlatform);
+        chip.classList.toggle('active', isActive);
+        if (isActive) {
+          chip.style.backgroundColor = curTypeColor;
+          chip.style.borderColor = curTypeColor;
+          chip.style.color = contrastText;
+          chip.style.fontWeight = '700';
+        } else {
+          chip.style.backgroundColor = '#18181b';
+          chip.style.borderColor = '#3f3f46';
+          chip.style.color = '#a1a1aa';
+          chip.style.fontWeight = 'normal';
+        }
+      });
 
       renderPlatformCardSelect();
     } else if (curMethod === 'card') {
@@ -825,9 +892,25 @@
     const panel = document.getElementById('sub-method-panel');
     if (!panel) return;
     const platformRow = panel.querySelector('.chip-scroll');
+    const colors = config.colors || DEFAULT_CONFIG.colors;
+    const curTypeColor = colors[curMethod] || '#6366f1';
+    const contrastText = getContrastColor(curTypeColor);
+
     if (platformRow) {
       platformRow.querySelectorAll('.chip').forEach(chip => {
-        chip.classList.toggle('active', chip.innerText === pName);
+        const isActive = (chip.innerText === pName);
+        chip.classList.toggle('active', isActive);
+        if (isActive) {
+          chip.style.backgroundColor = curTypeColor;
+          chip.style.borderColor = curTypeColor;
+          chip.style.color = contrastText;
+          chip.style.fontWeight = '700';
+        } else {
+          chip.style.backgroundColor = '#18181b';
+          chip.style.borderColor = '#3f3f46';
+          chip.style.color = '#a1a1aa';
+          chip.style.fontWeight = 'normal';
+        }
       });
     }
     renderPlatformCardSelect();
@@ -1028,7 +1111,6 @@
         isDragging = false;
         const diffX = clientX !== undefined ? (clientX - startX) : currentDiffX;
         
-        // 在歷史清單項目向右滑動切回記帳頁
         if (diffX > 75 && Math.abs(diffX) > Math.abs(clientY - startY)) {
           switchPage(0, 'right');
           return;
@@ -1404,6 +1486,7 @@
     closeConfigModal();
     curPlatform = '';
     curCard = '';
+    updateMainMethodStyles();
     renderQuickItems();
     renderSubMethods();
     renderHistory();
@@ -1421,6 +1504,7 @@
       document.getElementById('picker-bank').value = DEFAULT_CONFIG.colors.bank;
       document.getElementById('picker-cash').value = DEFAULT_CONFIG.colors.cash;
       
+      updateMainMethodStyles();
       renderQuickItems();
       renderSubMethods();
       renderHistory();
@@ -1543,6 +1627,7 @@
 
         curPlatform = '';
         curCard = '';
+        updateMainMethodStyles();
         renderQuickItems();
         renderSubMethods();
         renderHistory();
